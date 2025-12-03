@@ -18,6 +18,7 @@ internal sealed record UpdateCheckResult(bool IsUpdateAvailable, UpdateInfo? Upd
 
 internal sealed class UpdateService
 {
+    private const string PreferredZip = "Bobrus-win-x64.zip";
     private const string RepoOwner = "Feuda1";
     private const string RepoName = "bobrus";
     private const string ExecutableName = "Bobrus.exe";
@@ -172,13 +173,16 @@ internal sealed class UpdateService
                     continue;
                 }
 
-                if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) && name.Equals(PreferredZip, StringComparison.OrdinalIgnoreCase))
                 {
                     asset = new UpdateAsset(name, url, size);
                     break;
                 }
 
-                asset ??= new UpdateAsset(name, url, size);
+                if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) && asset is null)
+                {
+                    asset = new UpdateAsset(name, url, size);
+                }
             }
         }
 

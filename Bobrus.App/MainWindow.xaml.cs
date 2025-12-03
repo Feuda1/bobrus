@@ -54,6 +54,7 @@ public partial class MainWindow : Window
         CheckUpdatesButton.IsEnabled = false;
         _logger.Information("Запрос на проверку обновлений.");
         ShowNotification("Проверяем обновления...", NotificationType.Info);
+        AppPaths.CleanupOldUpdates();
 
         try
         {
