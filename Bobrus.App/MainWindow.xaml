@@ -110,40 +110,37 @@
         </Grid>
 
         <!-- Search bar -->
-        <Grid Grid.Row="1" Margin="0 12 0 8" HorizontalAlignment="Center">
-            <Grid MaxWidth="1280" Margin="20 0 20 0">
-                <Border Background="{StaticResource SurfaceBrush}"
-                        BorderBrush="{StaticResource BorderBrushMuted}"
-                        BorderThickness="1"
-                        CornerRadius="10"
-                        Padding="12 10">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Viewbox Width="18" Height="18" VerticalAlignment="Center">
-                            <Path Stroke="{StaticResource TextSecondaryBrush}"
-                                  StrokeThickness="1.4"
-                                  Data="M10,14 A4,4 0 1 1 14,10 L18,14" />
-                        </Viewbox>
-                        <TextBlock Grid.Column="1"
-                                   Margin="10 0 0 0"
-                                   VerticalAlignment="Center"
-                                   Text="Поиск функций (Ctrl+K)"
-                                   Foreground="{StaticResource TextSecondaryBrush}" />
-                    </Grid>
-                </Border>
-            </Grid>
+        <Grid Grid.Row="1" Margin="16 12 16 8">
+            <Border Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrushMuted}"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    Padding="12 10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Viewbox Width="18" Height="18" VerticalAlignment="Center">
+                        <Path Stroke="{StaticResource TextSecondaryBrush}"
+                              StrokeThickness="1.4"
+                              Data="M10,14 A4,4 0 1 1 14,10 L18,14" />
+                    </Viewbox>
+                    <TextBlock Grid.Column="1"
+                               Margin="10 0 0 0"
+                               VerticalAlignment="Center"
+                               Text="Поиск функций (Ctrl+K)"
+                               Foreground="{StaticResource TextSecondaryBrush}" />
+                </Grid>
+            </Border>
         </Grid>
 
         <!-- Main layout -->
-        <Grid Grid.Row="2" Margin="0 0 0 0" HorizontalAlignment="Center">
-            <Grid MaxWidth="1280" Margin="20 0 20 16">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="240" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+        <Grid Grid.Row="2" Margin="16 0 16 16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="240" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
                 <!-- Sidebar -->
                 <Border Grid.Column="0"
@@ -267,7 +264,6 @@
                         </Grid>
                     </Border>
                 </Grid>
-            </Grid>
         </Grid>
         <!-- Notification stack -->
         <Grid Grid.RowSpan="3"
