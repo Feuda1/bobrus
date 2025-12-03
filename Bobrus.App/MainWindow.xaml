@@ -1,0 +1,300 @@
+<Window x:Class="Bobrus.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Bobrus.App"
+        mc:Ignorable="d"
+        Title="Bobrus"
+        Height="520"
+        Width="1024"
+        MinHeight="640"
+        MinWidth="900"
+        WindowStartupLocation="CenterScreen"
+        Language="ru-RU"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        Background="{StaticResource BackgroundBrush}">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0"
+                      ResizeBorderThickness="8"
+                      CornerRadius="0"
+                      GlassFrameThickness="0"
+                      UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Grid Background="{StaticResource BackgroundBrush}" x:Name="RootGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Top bar -->
+        <Grid Grid.Row="0"
+              Background="#15151C"
+              Height="48"
+              SnapsToDevicePixels="True"
+              MouseLeftButtonDown="OnTopBarMouseDown">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Orientation="Horizontal" Margin="14 0 12 0" VerticalAlignment="Center">
+                <TextBlock Text="bobrus" FontSize="20" FontWeight="Bold" />
+                <Border Background="{StaticResource SurfaceBrush}" Padding="8 4" CornerRadius="6" BorderBrush="{StaticResource BorderBrushMuted}" BorderThickness="1" Margin="8 0 0 0">
+                    <TextBlock x:Name="VersionText" Text="Версия" Foreground="{StaticResource TextSecondaryBrush}" />
+                </Border>
+            </StackPanel>
+
+            <Grid Grid.Column="1" />
+
+            <Grid Grid.Column="2" VerticalAlignment="Center" Margin="0 0 12 0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center" Margin="0 0 12 0">
+                    <Button x:Name="CheckUpdatesButton"
+                            Width="160"
+                            Style="{StaticResource AccentButton}"
+                            Click="OnCheckUpdatesClicked">
+                        Проверить обновления
+                    </Button>
+                    <TextBlock x:Name="UpdateStatusText"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="8 0 0 0" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Grid.Column="1" VerticalAlignment="Center" Margin="10 0 0 0">
+                    <Button Style="{StaticResource WindowIconButton}"
+                            Click="OnMinimizeClicked">
+                        <Viewbox Stretch="Uniform" Width="16" Height="16">
+                            <Path Stroke="{StaticResource TextPrimaryBrush}"
+                                  StrokeThickness="1.8"
+                                  StrokeEndLineCap="Round"
+                                  StrokeStartLineCap="Round"
+                                  Data="M2,6 L8,12 L14,6" />
+                        </Viewbox>
+                    </Button>
+                    <Button Style="{StaticResource WindowIconButton}"
+                            Margin="6 0 0 0"
+                            Click="OnToggleMaximizeClicked">
+                        <Viewbox Stretch="Uniform" Width="16" Height="16">
+                            <Path Stroke="{StaticResource TextPrimaryBrush}"
+                                  StrokeThickness="1.8"
+                                  StrokeEndLineCap="Round"
+                                  StrokeStartLineCap="Round"
+                                  Data="M2,10 L8,4 L14,10" />
+                        </Viewbox>
+                    </Button>
+                    <Button Style="{StaticResource WindowCloseButton}"
+                            Margin="6 0 0 0"
+                            Click="OnCloseClicked">
+                        <Viewbox Stretch="Uniform" Width="16" Height="16">
+                            <Path Stroke="{StaticResource TextPrimaryBrush}"
+                                  StrokeThickness="1.8"
+                                  StrokeEndLineCap="Round"
+                                  StrokeStartLineCap="Round"
+                                  Data="M2,4 L14,16 M14,4 L2,16" />
+                        </Viewbox>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Grid>
+
+        <!-- Search bar -->
+        <Grid Grid.Row="1" Margin="16 8 16 4">
+            <Border Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrushMuted}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="12 8">
+                <TextBlock Text="Поиск функций (Ctrl+K)" Foreground="{StaticResource TextSecondaryBrush}" />
+            </Border>
+        </Grid>
+
+        <!-- Main layout -->
+        <Grid Grid.Row="2" Margin="16 8 16 16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Sidebar -->
+            <Border Grid.Column="0"
+                    Background="{StaticResource PanelBrush}"
+                    BorderBrush="{StaticResource BorderBrushMuted}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="14"
+                    MinWidth="200"
+                    MaxWidth="260">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock Text="Разделы" FontWeight="SemiBold" Margin="0 0 0 6" />
+                    <Button Content="Система" Style="{StaticResource NavButton}" Margin="0 0 0 6" />
+                    <Button Content="IIKO" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 6" />
+                    <Button Content="Логи" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 6" />
+                    <Button Content="Папки" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 6" />
+                    <Button Content="Сеть" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 6" />
+                    <Button Content="Программы" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 6" />
+                    <Button Content="Плагины" Style="{StaticResource NavButton}" IsEnabled="False" />
+                </StackPanel>
+            </Border>
+
+            <!-- Content area -->
+            <Grid Grid.Column="1" Margin="12 0 0 0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="1*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- System functions -->
+                <Border Style="{StaticResource CardBorder}" Grid.Column="0" Padding="18" Margin="0 0 12 0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Системные функции"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Margin="0 0 0 12" />
+
+                        <WrapPanel Grid.Row="1" Margin="0" HorizontalAlignment="Stretch">
+                            <Button Content="Перезагрузить ПК"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Height="44"
+                                    MinWidth="160"
+                                    Margin="0 12 12 0"
+                                    Click="OnRebootClicked" />
+                            <Button Content="Очистка (позже)"
+                                    Style="{StaticResource BaseButton}"
+                                    Height="44"
+                                    MinWidth="160"
+                                    Margin="0 12 12 0"
+                                    IsEnabled="False" />
+                            <Button Content="Службы (позже)"
+                                    Style="{StaticResource BaseButton}"
+                                    Height="44"
+                                    MinWidth="160"
+                                    Margin="0 12 12 0"
+                                    IsEnabled="False" />
+                            <Button Content="Сеть (позже)"
+                                    Style="{StaticResource BaseButton}"
+                                    Height="44"
+                                    MinWidth="160"
+                                    Margin="0 12 12 0"
+                                    IsEnabled="False" />
+                            <Button Content="Диагностика (позже)"
+                                    Style="{StaticResource BaseButton}"
+                                    Height="44"
+                                    MinWidth="160"
+                                    Margin="0 12 12 0"
+                                    IsEnabled="False" />
+                            <Button Content="Резерв (позже)"
+                                    Style="{StaticResource BaseButton}"
+                                    Height="44"
+                                    MinWidth="160"
+                                    Margin="0 12 12 0"
+                                    IsEnabled="False" />
+                        </WrapPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Log panel -->
+                <Border Style="{StaticResource CardBorder}" Grid.Column="1" Padding="14">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="0 0 0 10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Журнал"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                            <Button Content="Очистить"
+                                    Style="{StaticResource BaseButton}"
+                                    Width="120"
+                                    Margin="8 0 0 0"
+                                    IsEnabled="False"
+                                    Grid.Column="1" />
+                        </Grid>
+
+                        <Border Grid.Row="2"
+                                Margin="0 8 0 0"
+                                Background="#0C0C10"
+                                BorderBrush="{StaticResource BorderBrushMuted}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="12">
+                            <TextBlock Text="[лог будет здесь]"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" />
+                        </Border>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+        <!-- Notification stack -->
+        <Grid Grid.RowSpan="3"
+              IsHitTestVisible="False"
+              VerticalAlignment="Bottom"
+              HorizontalAlignment="Right"
+              Margin="16">
+            <StackPanel x:Name="NotificationStack"
+                        Orientation="Vertical"
+                        Width="320"
+                        VerticalAlignment="Bottom" />
+        </Grid>
+
+        <!-- Confirmation overlay -->
+        <Grid x:Name="ConfirmOverlay"
+              Grid.RowSpan="2"
+              Background="#88000000"
+              Visibility="Collapsed">
+            <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Width="400">
+                <Border Background="{StaticResource PanelBrush}"
+                        BorderBrush="{StaticResource BorderBrushMuted}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="18">
+                    <StackPanel>
+                        <TextBlock x:Name="ConfirmTitle"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Margin="0 0 0 8" />
+                        <TextBlock x:Name="ConfirmMessage"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Margin="0 0 0 12" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="Отмена"
+                                    Style="{StaticResource BaseButton}"
+                                    Width="100"
+                                    Margin="0 0 10 0"
+                                    Click="OnConfirmCancelClicked" />
+                            <Button Content="Подтвердить"
+                                    Style="{StaticResource AccentButton}"
+                                    Width="120"
+                                    Click="OnConfirmAcceptClicked" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
