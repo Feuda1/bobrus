@@ -34,8 +34,8 @@
 
         <!-- Top bar -->
         <Grid Grid.Row="0"
-              Background="#15151C"
-              Height="48"
+              Background="{StaticResource TopBarBrush}"
+              Height="52"
               SnapsToDevicePixels="True"
               MouseLeftButtonDown="OnTopBarMouseDown">
             <Grid.ColumnDefinitions>
@@ -110,144 +110,163 @@
         </Grid>
 
         <!-- Search bar -->
-        <Grid Grid.Row="1" Margin="16 8 16 4">
-            <Border Background="{StaticResource SurfaceBrush}"
-                    BorderBrush="{StaticResource BorderBrushMuted}"
-                    BorderThickness="1"
-                    CornerRadius="8"
-                    Padding="12 8">
-                <TextBlock Text="Поиск функций (Ctrl+K)" Foreground="{StaticResource TextSecondaryBrush}" />
-            </Border>
+        <Grid Grid.Row="1" Margin="0 12 0 8" HorizontalAlignment="Center">
+            <Grid MaxWidth="1280" Margin="20 0 20 0">
+                <Border Background="{StaticResource SurfaceBrush}"
+                        BorderBrush="{StaticResource BorderBrushMuted}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="12 10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Viewbox Width="18" Height="18" VerticalAlignment="Center">
+                            <Path Stroke="{StaticResource TextSecondaryBrush}"
+                                  StrokeThickness="1.4"
+                                  Data="M10,14 A4,4 0 1 1 14,10 L18,14" />
+                        </Viewbox>
+                        <TextBlock Grid.Column="1"
+                                   Margin="10 0 0 0"
+                                   VerticalAlignment="Center"
+                                   Text="Поиск функций (Ctrl+K)"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
 
         <!-- Main layout -->
-        <Grid Grid.Row="2" Margin="16 8 16 16">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="220" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <!-- Sidebar -->
-            <Border Grid.Column="0"
-                    Background="{StaticResource PanelBrush}"
-                    BorderBrush="{StaticResource BorderBrushMuted}"
-                    BorderThickness="1"
-                    CornerRadius="8"
-                    Padding="14"
-                    MinWidth="200"
-                    MaxWidth="260">
-                <StackPanel Orientation="Vertical">
-                    <TextBlock Text="Разделы" FontWeight="SemiBold" Margin="0 0 0 6" />
-                    <Button Content="Система" Style="{StaticResource NavButton}" Margin="0 0 0 6" />
-                    <Button Content="IIKO" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 6" />
-                    <Button Content="Логи" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 6" />
-                    <Button Content="Папки" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 6" />
-                    <Button Content="Сеть" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 6" />
-                    <Button Content="Программы" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 6" />
-                    <Button Content="Плагины" Style="{StaticResource NavButton}" IsEnabled="False" />
-                </StackPanel>
-            </Border>
-
-            <!-- Content area -->
-            <Grid Grid.Column="1" Margin="12 0 0 0">
+        <Grid Grid.Row="2" Margin="0 0 0 0" HorizontalAlignment="Center">
+            <Grid MaxWidth="1280" Margin="20 0 20 16">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2*" />
-                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="240" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <!-- System functions -->
-                <Border Style="{StaticResource CardBorder}" Grid.Column="0" Padding="18" Margin="0 0 12 0">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-
-                        <TextBlock Text="Системные функции"
-                                   FontSize="18"
-                                   FontWeight="SemiBold"
-                                   Margin="0 0 0 12" />
-
-                        <WrapPanel Grid.Row="1" Margin="0" HorizontalAlignment="Stretch">
-                            <Button Content="Перезагрузить ПК"
-                                    Style="{StaticResource PrimaryButton}"
-                                    Height="44"
-                                    MinWidth="160"
-                                    Margin="0 12 12 0"
-                                    Click="OnRebootClicked" />
-                            <Button Content="Очистка (позже)"
-                                    Style="{StaticResource BaseButton}"
-                                    Height="44"
-                                    MinWidth="160"
-                                    Margin="0 12 12 0"
-                                    IsEnabled="False" />
-                            <Button Content="Службы (позже)"
-                                    Style="{StaticResource BaseButton}"
-                                    Height="44"
-                                    MinWidth="160"
-                                    Margin="0 12 12 0"
-                                    IsEnabled="False" />
-                            <Button Content="Сеть (позже)"
-                                    Style="{StaticResource BaseButton}"
-                                    Height="44"
-                                    MinWidth="160"
-                                    Margin="0 12 12 0"
-                                    IsEnabled="False" />
-                            <Button Content="Диагностика (позже)"
-                                    Style="{StaticResource BaseButton}"
-                                    Height="44"
-                                    MinWidth="160"
-                                    Margin="0 12 12 0"
-                                    IsEnabled="False" />
-                            <Button Content="Резерв (позже)"
-                                    Style="{StaticResource BaseButton}"
-                                    Height="44"
-                                    MinWidth="160"
-                                    Margin="0 12 12 0"
-                                    IsEnabled="False" />
-                        </WrapPanel>
-                    </Grid>
+                <!-- Sidebar -->
+                <Border Grid.Column="0"
+                        Background="{StaticResource PanelBrush}"
+                        BorderBrush="{StaticResource BorderBrushMuted}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="16"
+                        MinWidth="220"
+                        MaxWidth="260">
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock Text="Разделы" FontWeight="SemiBold" Margin="0 0 0 10" />
+                        <Button Content="Система" Style="{StaticResource NavButton}" Margin="0 0 0 8" />
+                        <Button Content="IIKO" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 8" />
+                        <Button Content="Логи" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 8" />
+                        <Button Content="Папки" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 8" />
+                        <Button Content="Сеть" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 8" />
+                        <Button Content="Программы" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 8" />
+                        <Button Content="Плагины" Style="{StaticResource NavButton}" IsEnabled="False" />
+                    </StackPanel>
                 </Border>
 
-                <!-- Log panel -->
-                <Border Style="{StaticResource CardBorder}" Grid.Column="1" Padding="14">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
+                <!-- Content area -->
+                <Grid Grid.Column="1" Margin="16 0 0 0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="1*" />
+                    </Grid.ColumnDefinitions>
 
-                        <Grid Grid.Row="0" Margin="0 0 0 10">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Журнал"
-                                       FontSize="16"
+                    <!-- System functions -->
+                    <Border Style="{StaticResource CardBorder}" Grid.Column="0" Padding="18" Margin="0 0 14 0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="Системные функции"
+                                       FontSize="18"
                                        FontWeight="SemiBold"
-                                       VerticalAlignment="Center" />
-                            <Button Content="Очистить"
-                                    Style="{StaticResource BaseButton}"
-                                    Width="120"
-                                    Margin="8 0 0 0"
-                                    IsEnabled="False"
-                                    Grid.Column="1" />
-                        </Grid>
+                                       Margin="0 0 0 14" />
 
-                        <Border Grid.Row="2"
-                                Margin="0 8 0 0"
-                                Background="#0C0C10"
-                                BorderBrush="{StaticResource BorderBrushMuted}"
-                                BorderThickness="1"
-                                CornerRadius="6"
-                                Padding="12">
-                            <TextBlock Text="[лог будет здесь]"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                       TextWrapping="Wrap" />
-                        </Border>
-                    </Grid>
-                </Border>
+                            <WrapPanel Grid.Row="1" Margin="0" HorizontalAlignment="Stretch">
+                                <Button Content="Перезагрузить ПК"
+                                        Style="{StaticResource PrimaryButton}"
+                                        Height="44"
+                                        MinWidth="170"
+                                        Margin="0 12 12 12"
+                                        Click="OnRebootClicked" />
+                                <Button Content="Очистка (позже)"
+                                        Style="{StaticResource BaseButton}"
+                                        Height="44"
+                                        MinWidth="170"
+                                        Margin="0 12 12 12"
+                                        IsEnabled="False" />
+                                <Button Content="Службы (позже)"
+                                        Style="{StaticResource BaseButton}"
+                                        Height="44"
+                                        MinWidth="170"
+                                        Margin="0 12 12 12"
+                                        IsEnabled="False" />
+                                <Button Content="Сеть (позже)"
+                                        Style="{StaticResource BaseButton}"
+                                        Height="44"
+                                        MinWidth="170"
+                                        Margin="0 12 12 12"
+                                        IsEnabled="False" />
+                                <Button Content="Диагностика (позже)"
+                                        Style="{StaticResource BaseButton}"
+                                        Height="44"
+                                        MinWidth="170"
+                                        Margin="0 12 12 12"
+                                        IsEnabled="False" />
+                                <Button Content="Резерв (позже)"
+                                        Style="{StaticResource BaseButton}"
+                                        Height="44"
+                                        MinWidth="170"
+                                        Margin="0 12 12 12"
+                                        IsEnabled="False" />
+                            </WrapPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Log panel -->
+                    <Border Style="{StaticResource CardBorder}" Grid.Column="1" Padding="16">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0 0 0 12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Журнал"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center" />
+                                <Button Content="Очистить"
+                                        Style="{StaticResource BaseButton}"
+                                        Width="120"
+                                        Margin="10 0 0 0"
+                                        IsEnabled="False"
+                                        Grid.Column="1" />
+                            </Grid>
+
+                            <Border Grid.Row="2"
+                                    Margin="0 10 0 0"
+                                    Background="#0C0C10"
+                                    BorderBrush="{StaticResource BorderBrushMuted}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="14">
+                                <TextBlock Text="[лог будет здесь]"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                            </Border>
+                        </Grid>
+                    </Border>
+                </Grid>
             </Grid>
         </Grid>
         <!-- Notification stack -->
@@ -255,7 +274,7 @@
               IsHitTestVisible="False"
               VerticalAlignment="Bottom"
               HorizontalAlignment="Right"
-              Margin="16">
+              Margin="16 16 16 24">
             <StackPanel x:Name="NotificationStack"
                         Orientation="Vertical"
                         Width="320"
@@ -264,7 +283,7 @@
 
         <!-- Confirmation overlay -->
         <Grid x:Name="ConfirmOverlay"
-              Grid.RowSpan="2"
+              Grid.RowSpan="3"
               Background="#88000000"
               Visibility="Collapsed">
             <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Width="400">
