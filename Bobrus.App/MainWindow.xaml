@@ -237,7 +237,7 @@
                         </Border>
 
                         <!-- IIKO functions -->
-                        <Border x:Name="IikoCard" Style="{StaticResource CardBorder}" Padding="18">
+                        <Border x:Name="IikoCard" Style="{StaticResource CardBorder}" Padding="18" Margin="0 0 0 14">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -276,7 +276,7 @@
                         </Border>
 
                         <!-- Logs -->
-                        <Border x:Name="LogsCard" Style="{StaticResource CardBorder}" Padding="18" Margin="0 0 0 0">
+                        <Border x:Name="LogsCard" Style="{StaticResource CardBorder}" Padding="18">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
