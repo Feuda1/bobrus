@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private readonly CleaningService _cleaningService = new();
     private readonly ComPortManager _comPortManager = new();
     private readonly SecurityService _securityService = new();
+    private readonly PrintSpoolService _printSpoolService = new();
     private Action? _pendingConfirmAction;
     private bool? _isTouchEnabled;
 
@@ -391,6 +392,30 @@ public partial class MainWindow : Window
         finally
         {
             button.Content = "Перезапуск COM-портов";
+            button.IsEnabled = true;
+        }
+    }
+
+    private async void OnRestartPrintSpoolerClicked(object sender, RoutedEventArgs e)
+    {
+        var button = (Button)sender;
+        button.IsEnabled = false;
+        button.Content = "Перезапуск...";
+        try
+        {
+            _logger.Information("Диспетчер печати: старт перезапуска");
+            await _printSpoolService.RestartAndCleanAsync(msg => _logger.Information(msg));
+            ShowNotification("Диспетчер печати перезапущен и очередь очищена", NotificationType.Success);
+            _logger.Information("Диспетчер печати: завершено");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Ошибка перезапуска диспетчера печати");
+            ShowNotification($"Ошибка перезапуска печати: {ex.Message}", NotificationType.Error);
+        }
+        finally
+        {
+            button.Content = "Перезапуск и очистка дисп. печати";
             button.IsEnabled = true;
         }
     }

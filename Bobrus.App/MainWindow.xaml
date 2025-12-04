@@ -209,6 +209,12 @@
                                     MinWidth="170"
                                     Margin="0 12 12 12"
                                     Click="OnRestartComClicked" />
+                            <Button Content="Перезапуск и очистка дисп. печати"
+                                    Style="{StaticResource BaseButton}"
+                                    Height="44"
+                                    MinWidth="230"
+                                    Margin="0 12 12 12"
+                                    Click="OnRestartPrintSpoolerClicked" />
                             <Button Content="Очистить мусор"
                                     Style="{StaticResource BaseButton}"
                                     Height="44"
