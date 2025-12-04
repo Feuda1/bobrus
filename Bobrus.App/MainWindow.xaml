@@ -62,7 +62,7 @@
 
                 <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center" Margin="0 0 12 0">
                     <Button x:Name="CheckUpdatesButton"
-                            Width="150"
+                            Width="130"
                             Style="{StaticResource BaseButton}"
                             Click="OnCheckUpdatesClicked">
                         Проверить обновления
