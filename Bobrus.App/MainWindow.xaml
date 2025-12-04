@@ -35,7 +35,8 @@
         <!-- Top bar -->
         <Grid Grid.Row="0"
               Background="{StaticResource TopBarBrush}"
-              Height="52"
+              Height="60"
+              Margin="0 6 0 0"
               SnapsToDevicePixels="True"
               MouseLeftButtonDown="OnTopBarMouseDown">
             <Grid.ColumnDefinitions>
