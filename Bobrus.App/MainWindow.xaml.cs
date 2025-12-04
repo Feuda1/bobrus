@@ -21,6 +21,7 @@ public partial class MainWindow : Window
     private readonly HttpClient _httpClient = new();
     private readonly UpdateService _updateService;
     private readonly TouchDeviceManager _touchManager = new();
+    private readonly CleaningService _cleaningService = new();
     private Action? _pendingConfirmAction;
     private bool? _isTouchEnabled;
 
@@ -260,6 +261,44 @@ public partial class MainWindow : Window
             button.Content = "Перезапуск сенсора";
             button.IsEnabled = true;
         }
+    }
+
+    private async void OnCleanupClicked(object sender, RoutedEventArgs e)
+    {
+        var button = (Button)sender;
+        button.IsEnabled = false;
+        button.Content = "Очистка...";
+        try
+        {
+            var results = await _cleaningService.RunCleanupAsync();
+            var freed = results.Sum(r => r.BytesFreed);
+            ShowNotification($"Очистка завершена. Освобождено {FormatBytes(freed)}", NotificationType.Success);
+            foreach (var r in results)
+            {
+                _logger.Information("Очистка {Name}: освобождено {Bytes} байт", r.Name, r.BytesFreed);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Ошибка очистки");
+            ShowNotification($"Ошибка очистки: {ex.Message}", NotificationType.Error);
+        }
+        finally
+        {
+            button.Content = "Очистить мусор";
+            button.IsEnabled = true;
+        }
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} Б";
+        double kb = bytes / 1024.0;
+        if (kb < 1024) return $"{kb:F1} КБ";
+        double mb = kb / 1024.0;
+        if (mb < 1024) return $"{mb:F1} МБ";
+        double gb = mb / 1024.0;
+        return $"{gb:F1} ГБ";
     }
 
     private void UpdateTouchButtonVisual()
