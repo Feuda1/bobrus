@@ -25,6 +25,14 @@ internal sealed class CleaningService
             () => CleanDirectory("WER отчёты", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Microsoft", "Windows", "WER")),
             () => CleanDirectory("Edge кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Edge\User Data\Default\Cache")),
             () => CleanDirectory("Chrome кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Google\Chrome\User Data\Default\Cache")),
+            () => CleanDirectory("Yandex кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Yandex\YandexBrowser\User Data\Default\Cache")),
+            () => CleanDirectory("Opera кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Opera Software\Opera Stable\Cache")),
+            () => CleanDirectory("Opera GX кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Opera Software\Opera GX Stable\Cache")),
+            () => CleanDirectory("Brave кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"BraveSoftware\Brave-Browser\User Data\Default\Cache")),
+            () => CleanDirectory("Vivaldi кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Vivaldi\User Data\Default\Cache")),
+            () => CleanDirectory("Chromium кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Chromium\User Data\Default\Cache")),
+            () => CleanFirefoxCaches(),
+            () => CleanDirectory("IE/INet кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Windows\INetCache")),
             EmptyRecycleBin
         };
 
@@ -92,6 +100,58 @@ internal sealed class CleaningService
             }
 
             return new CleanupResult(name, freed);
+        });
+    }
+
+    private static Task<CleanupResult> CleanFirefoxCaches()
+    {
+        return Task.Run(() =>
+        {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var profilesRoot = Path.Combine(appData, "Mozilla", "Firefox", "Profiles");
+            if (!Directory.Exists(profilesRoot))
+            {
+                return new CleanupResult("Firefox кеш", 0);
+            }
+
+            var freed = 0L;
+            foreach (var profile in SafeEnumDirectories(profilesRoot))
+            {
+                var cache = Path.Combine(profile, "cache2");
+                if (!Directory.Exists(cache))
+                {
+                    continue;
+                }
+
+                foreach (var file in SafeEnumFiles(cache))
+                {
+                    try
+                    {
+                        var info = new FileInfo(file);
+                        freed += info.Exists ? info.Length : 0;
+                        info.IsReadOnly = false;
+                        info.Delete();
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                }
+
+                foreach (var dir in SafeEnumDirectories(cache))
+                {
+                    try
+                    {
+                        Directory.Delete(dir, recursive: true);
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                }
+            }
+
+            return new CleanupResult("Firefox кеш", freed);
         });
     }
 
