@@ -429,6 +429,8 @@ public partial class MainWindow : Window
             {
                 btn.Visibility = Visibility.Visible;
             }
+            SystemCard.Visibility = Visibility.Visible;
+            IikoCard.Visibility = Visibility.Visible;
             return;
         }
 
@@ -437,6 +439,12 @@ public partial class MainWindow : Window
             var text = $"{btn.Content} {btn.Tag}".ToString().ToLowerInvariant();
             btn.Visibility = text.Contains(q) ? Visibility.Visible : Visibility.Collapsed;
         }
+
+        var systemVisible = ActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
+        var iikoVisible = IikoActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
+
+        SystemCard.Visibility = systemVisible ? Visibility.Visible : Visibility.Collapsed;
+        IikoCard.Visibility = iikoVisible ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private async void OnRestartPrintSpoolerClicked(object sender, RoutedEventArgs e)

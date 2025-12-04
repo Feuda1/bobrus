@@ -150,41 +150,14 @@
         <!-- Main layout -->
         <Grid Grid.Row="2" Margin="16 0 16 16">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="240" />
-                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="1*" />
             </Grid.ColumnDefinitions>
 
-                <!-- Sidebar -->
-                <Border Grid.Column="0"
-                        Background="{StaticResource PanelBrush}"
-                        BorderBrush="{StaticResource BorderBrushMuted}"
-                        BorderThickness="1"
-                        CornerRadius="10"
-                        Padding="16"
-                        MinWidth="220"
-                        MaxWidth="260">
-                    <StackPanel Orientation="Vertical">
-                        <TextBlock Text="Разделы" FontWeight="SemiBold" Margin="0 0 0 10" />
-                        <Button Content="Система" Style="{StaticResource NavButton}" Margin="0 0 0 8" />
-                        <Button Content="IIKO" Style="{StaticResource NavButton}" Margin="0 0 0 8" />
-                        <Button Content="Логи" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 8" />
-                        <Button Content="Папки" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 8" />
-                        <Button Content="Сеть" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 8" />
-                        <Button Content="Программы" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 8" />
-                        <Button Content="Плагины" Style="{StaticResource NavButton}" IsEnabled="False" />
-                    </StackPanel>
-                </Border>
-
                 <!-- Content area -->
-                <Grid Grid.Column="1" Margin="16 0 0 0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*" />
-                        <ColumnDefinition Width="1*" />
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel Grid.Column="0" Orientation="Vertical">
+                <StackPanel Grid.Column="0" Orientation="Vertical">
                         <!-- System functions -->
-                        <Border Style="{StaticResource CardBorder}" Padding="18" Margin="0 0 0 14">
+                        <Border x:Name="SystemCard" Style="{StaticResource CardBorder}" Padding="18" Margin="0 0 0 14">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -259,7 +232,7 @@
                         </Border>
 
                         <!-- IIKO functions -->
-                        <Border Style="{StaticResource CardBorder}" Padding="18">
+                        <Border x:Name="IikoCard" Style="{StaticResource CardBorder}" Padding="18">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -299,7 +272,7 @@
                     </StackPanel>
 
                     <!-- Log panel -->
-                    <Border Style="{StaticResource CardBorder}" Grid.Column="1" Padding="16">
+                    <Border Style="{StaticResource CardBorder}" Grid.Column="1" Padding="16" Margin="12 0 0 0">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -349,7 +322,6 @@
                         </Grid>
                     </Border>
                 </Grid>
-            </Grid>
         <!-- Notification stack -->
         <Grid Grid.RowSpan="3"
               IsHitTestVisible="False"
