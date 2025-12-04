@@ -709,6 +709,11 @@ public partial class MainWindow : Window
         await OpenFolderAsync(@"C:\UTM", "UTM");
     }
 
+    private async void OnOpenFolderPluginConfigsClicked(object sender, RoutedEventArgs e)
+    {
+        await OpenFolderAsync(Path.Combine(_cashServerBase, "PluginConfigs"), "PluginConfigs");
+    }
+
     private async void OnOpenUtmTransportLogClicked(object sender, RoutedEventArgs e)
     {
         await OpenLogAsync(@"C:\UTM\transporter\l\transport_info.log", description: "UTM transport_info.log");
