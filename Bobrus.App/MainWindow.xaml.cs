@@ -270,12 +270,14 @@ public partial class MainWindow : Window
         button.Content = "Очистка...";
         try
         {
+            _logger.Information("Очистка: старт");
             var results = await _cleaningService.RunCleanupAsync();
             var freed = results.Sum(r => r.BytesFreed);
             foreach (var r in results)
             {
                 _logger.Information("Очистка {Name}: освобождено {Bytes} байт", r.Name, r.BytesFreed);
             }
+            _logger.Information("Очистка: итог освобождено {Bytes} байт", freed);
             ShowNotification($"Очистка завершена. Освобождено {FormatBytes(freed)}", NotificationType.Success);
         }
         catch (Exception ex)
