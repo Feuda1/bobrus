@@ -779,6 +779,10 @@ public partial class MainWindow : Window
         var logsDir = Path.Combine(_cashServerBase, "Logs");
         var cashRoot = _cashServerBase;
         var entitiesDir = Path.Combine(_cashServerBase, "EntitiesStorage");
+        var startDate = Dispatcher.Invoke(() => LogStartDate.SelectedDate) ?? DateTime.Today;
+        var endDateRaw = Dispatcher.Invoke(() => LogEndDate.SelectedDate) ?? DateTime.Today;
+        var start = startDate.Date;
+        var end = endDateRaw.Date.AddDays(1).AddTicks(-1);
 
         if (File.Exists(zipPath))
         {
@@ -790,7 +794,12 @@ public partial class MainWindow : Window
         // *.log и архивы логов из Logs
         if (Directory.Exists(logsDir))
         {
-            var logFiles = Directory.EnumerateFiles(logsDir, "*.log", SearchOption.TopDirectoryOnly);
+            var logFiles = Directory.EnumerateFiles(logsDir, "*.log", SearchOption.TopDirectoryOnly)
+                .Where(f =>
+                {
+                    var ts = File.GetLastWriteTime(f);
+                    return ts >= start && ts <= end;
+                });
             foreach (var file in logFiles)
             {
                 AddFileToArchive(archive, file, Path.Combine("Logs", Path.GetFileName(file)));
@@ -798,7 +807,12 @@ public partial class MainWindow : Window
 
             var archiveFiles = Directory.EnumerateFiles(logsDir, "*.*", SearchOption.TopDirectoryOnly)
                 .Where(f => f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
-                            f.EndsWith(".7z", StringComparison.OrdinalIgnoreCase));
+                            f.EndsWith(".7z", StringComparison.OrdinalIgnoreCase))
+                .Where(f =>
+                {
+                    var ts = File.GetLastWriteTime(f);
+                    return ts >= start && ts <= end;
+                });
             foreach (var file in archiveFiles)
             {
                 AddFileToArchive(archive, file, Path.Combine("Logs", Path.GetFileName(file)));

@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Bobrus.App"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
         Title="Bobrus"
         Height="520"
@@ -288,6 +289,39 @@
                                            FontWeight="SemiBold"
                                            Margin="0 0 0 14" />
 
+                                <Grid Grid.Row="1">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+
+                                    <WrapPanel Margin="0 0 0 12" HorizontalAlignment="Left" VerticalAlignment="Top">
+                                        <TextBlock Text="Период:"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0 0 10 0"
+                                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                                        <DatePicker x:Name="LogStartDate"
+                                                    SelectedDate="{x:Static sys:DateTime.Today}"
+                                                    Width="150"
+                                                    Margin="0 0 10 0" />
+                                        <TextBlock Text="по"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0 0 10 0"
+                                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                                        <DatePicker x:Name="LogEndDate"
+                                                    SelectedDate="{x:Static sys:DateTime.Today}"
+                                                    Width="150"
+                                                    Margin="0 0 20 0" />
+                                        <CheckBox x:Name="IncludeCashServerToggle"
+                                                  Content="Вся папка CashServer"
+                                                  Margin="0 0 16 0"
+                                                  Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <CheckBox x:Name="IncludeEntitiesToggle"
+                                                  Content="База EntitiesStorage"
+                                                  Margin="0 0 0 0"
+                                                  Foreground="{StaticResource TextPrimaryBrush}" />
+                                    </WrapPanel>
+
                                 <WrapPanel x:Name="LogsActionsPanel" Grid.Row="1" Margin="0" HorizontalAlignment="Stretch">
                                     <Button Content="config.xml"
                                             Style="{StaticResource BaseButton}"
@@ -381,6 +415,7 @@
                                             Click="OnCollectLogsClicked"
                                             Tag="сбор логов logs архив" />
                                 </WrapPanel>
+                                </Grid>
                             </Grid>
                         </Border>
 
