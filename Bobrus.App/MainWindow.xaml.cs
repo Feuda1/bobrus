@@ -11,6 +11,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using System.Windows.Interop;
 using Bobrus.App.Services;
+using Serilog.Events;
 
 namespace Bobrus.App;
 
@@ -120,10 +121,12 @@ public partial class MainWindow : Window
     {
         base.OnClosed(e);
         _httpClient.Dispose();
+        UiLogBuffer.OnLog -= OnUiLog;
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        UiLogBuffer.OnLog += OnUiLog;
         await RefreshTouchStateAsync();
     }
 
@@ -200,6 +203,34 @@ public partial class MainWindow : Window
             TouchToggleButton.IsEnabled = true;
         }
     }
+
+    private void OnClearLogClicked(object sender, RoutedEventArgs e)
+    {
+        LogRichTextBox.Document.Blocks.Clear();
+        LogRichTextBox.Document.Blocks.Add(new System.Windows.Documents.Paragraph());
+    }
+
+    private void OnUiLog(LogEvent logEvent)
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            var paragraph = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 0, 0, 4) };
+            var run = new System.Windows.Documents.Run($"[{logEvent.Timestamp:HH:mm:ss}] {logEvent.RenderMessage()}");
+            run.Foreground = GetBrushForLevel(logEvent.Level);
+            paragraph.Inlines.Add(run);
+            LogRichTextBox.Document.Blocks.Add(paragraph);
+            LogRichTextBox.ScrollToEnd();
+        }, DispatcherPriority.Background);
+    }
+
+    private Brush GetBrushForLevel(LogEventLevel level) =>
+        level switch
+        {
+            LogEventLevel.Error or LogEventLevel.Fatal => FindResource("DangerBrush") as Brush ?? Brushes.Red,
+            LogEventLevel.Warning => FindResource("AccentBlueBrush") as Brush ?? Brushes.Orange,
+            LogEventLevel.Debug => FindResource("TextSecondaryBrush") as Brush ?? Brushes.Gray,
+            _ => FindResource("TextPrimaryBrush") as Brush ?? Brushes.White
+        };
 
     private void UpdateTouchButtonVisual()
     {

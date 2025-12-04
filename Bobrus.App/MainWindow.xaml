@@ -253,7 +253,7 @@
                                         Style="{StaticResource BaseButton}"
                                         Width="120"
                                         Margin="10 0 0 0"
-                                        IsEnabled="False"
+                                        Click="OnClearLogClicked"
                                         Grid.Column="1" />
                             </Grid>
 
@@ -263,15 +263,26 @@
                                     BorderBrush="{StaticResource BorderBrushMuted}"
                                     BorderThickness="1"
                                     CornerRadius="8"
-                                    Padding="14">
-                                <TextBlock Text="[лог будет здесь]"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                           TextWrapping="Wrap" />
+                                    Padding="10">
+                                <RichTextBox x:Name="LogRichTextBox"
+                                             Background="Transparent"
+                                             BorderThickness="0"
+                                             IsReadOnly="True"
+                                             IsDocumentEnabled="False"
+                                             IsHitTestVisible="True"
+                                             VerticalScrollBarVisibility="Auto"
+                                             HorizontalScrollBarVisibility="Disabled"
+                                             Padding="0"
+                                             Foreground="{StaticResource TextPrimaryBrush}">
+                                    <FlowDocument>
+                                        <Paragraph/>
+                                    </FlowDocument>
+                                </RichTextBox>
                             </Border>
                         </Grid>
                     </Border>
                 </Grid>
-        </Grid>
+            </Grid>
         <!-- Notification stack -->
         <Grid Grid.RowSpan="3"
               IsHitTestVisible="False"

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Windows;
+using Bobrus.App.Services;
 using Serilog;
 
 namespace Bobrus.App;
@@ -37,6 +38,7 @@ public partial class App : Application
                 retainedFileCountLimit: 30,
                 rollOnFileSizeLimit: true,
                 shared: true)
+            .WriteTo.Sink(new UiLogSink())
             .CreateLogger();
 
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
