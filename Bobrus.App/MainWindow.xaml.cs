@@ -216,9 +216,23 @@ public partial class MainWindow : Window
         Dispatcher.InvokeAsync(() =>
         {
             var paragraph = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 0, 0, 4) };
-            var run = new System.Windows.Documents.Run($"[{logEvent.Timestamp:HH:mm:ss}] {logEvent.RenderMessage()}");
-            run.Foreground = GetBrushForLevel(logEvent.Level);
-            paragraph.Inlines.Add(run);
+            var timeRun = new System.Windows.Documents.Run($"[{logEvent.Timestamp:HH:mm:ss}] ")
+            {
+                Foreground = FindResource("TextSecondaryBrush") as Brush ?? Brushes.Gray
+            };
+            var levelRun = new System.Windows.Documents.Run($"{logEvent.Level.ToString().ToUpper(),-6} ")
+            {
+                Foreground = GetBrushForLevel(logEvent.Level),
+                FontWeight = FontWeights.SemiBold
+            };
+            var messageRun = new System.Windows.Documents.Run(logEvent.RenderMessage())
+            {
+                Foreground = FindResource("TextPrimaryBrush") as Brush ?? Brushes.White
+            };
+
+            paragraph.Inlines.Add(timeRun);
+            paragraph.Inlines.Add(levelRun);
+            paragraph.Inlines.Add(messageRun);
             LogRichTextBox.Document.Blocks.Add(paragraph);
             LogRichTextBox.ScrollToEnd();
         }, DispatcherPriority.Background);
