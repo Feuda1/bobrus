@@ -552,7 +552,7 @@
               Grid.RowSpan="3"
               Background="#88000000"
               Visibility="Collapsed">
-            <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Width="520">
+            <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Width="620">
                 <Border Background="{StaticResource PanelBrush}"
                         BorderBrush="{StaticResource BorderBrushMuted}"
                         BorderThickness="1"
@@ -579,28 +579,22 @@
                         <StackPanel Margin="0 12 0 0">
                             <TextBlock Text="Выберите период" Foreground="{StaticResource TextSecondaryBrush}" />
                             <StackPanel Orientation="Horizontal" Margin="0 6 0 10">
-                                <StackPanel Width="180">
+                                <StackPanel Width="200">
                                     <TextBlock Text="С начала" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" />
                                     <ComboBox x:Name="CollectStartDate"
-                                              Background="{StaticResource SurfaceBrush}"
-                                              Foreground="{StaticResource TextPrimaryBrush}"
-                                              BorderBrush="{StaticResource BorderBrushMuted}"
-                                              BorderThickness="1"
-                                              Width="180"
+                                              Style="{StaticResource DarkComboBox}"
+                                              Width="200"
                                               IsReadOnly="True" />
                                 </StackPanel>
                                 <TextBlock Text="по"
                                            VerticalAlignment="Center"
                                            Margin="10 0 10 0"
                                            Foreground="{StaticResource TextSecondaryBrush}" />
-                                <StackPanel Width="180">
+                                <StackPanel Width="200">
                                     <TextBlock Text="До" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" />
                                     <ComboBox x:Name="CollectEndDate"
-                                              Background="{StaticResource SurfaceBrush}"
-                                              Foreground="{StaticResource TextPrimaryBrush}"
-                                              BorderBrush="{StaticResource BorderBrushMuted}"
-                                              BorderThickness="1"
-                                              Width="180"
+                                              Style="{StaticResource DarkComboBox}"
+                                              Width="200"
                                               IsReadOnly="True" />
                                 </StackPanel>
                             </StackPanel>
@@ -611,9 +605,11 @@
                                           Content="Добавить всю папку CashServer"
                                           Foreground="{StaticResource TextPrimaryBrush}"
                                           Margin="0 0 6 6"
-                                          Style="{StaticResource ToggleCheckBox}" />
+                                          Style="{StaticResource ToggleCheckBox}"
+                                          Checked="OnCollectCashToggleChanged"
+                                          Unchecked="OnCollectCashToggleChanged" />
                                 <CheckBox x:Name="CollectIncludeEntities"
-                                          Content="Добавить EntitiesStorage"
+                                          Content="Собрать БД"
                                           Foreground="{StaticResource TextPrimaryBrush}"
                                           Margin="0 0 6 0"
                                           Style="{StaticResource ToggleCheckBox}" />

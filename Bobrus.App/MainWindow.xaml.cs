@@ -790,6 +790,22 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnCollectCashToggleChanged(object sender, RoutedEventArgs e)
+    {
+        var cash = CollectIncludeCash.IsChecked == true;
+        if (cash)
+        {
+            CollectIncludeEntities.IsChecked = false;
+            CollectIncludeEntities.IsEnabled = false;
+            CollectIncludeEntities.Opacity = 0.6;
+        }
+        else
+        {
+            CollectIncludeEntities.IsEnabled = true;
+            CollectIncludeEntities.Opacity = 1.0;
+        }
+    }
+
     private void CreateLogsArchive(string zipPath, bool includeCashServer, bool includeEntities, DateTime startDate, DateTime endDate)
     {
         var logsDir = Path.Combine(_cashServerBase, "Logs");
