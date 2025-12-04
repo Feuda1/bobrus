@@ -166,7 +166,7 @@
                     <StackPanel Orientation="Vertical">
                         <TextBlock Text="Разделы" FontWeight="SemiBold" Margin="0 0 0 10" />
                         <Button Content="Система" Style="{StaticResource NavButton}" Margin="0 0 0 8" />
-                        <Button Content="IIKO" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 8" />
+                        <Button Content="IIKO" Style="{StaticResource NavButton}" Margin="0 0 0 8" />
                         <Button Content="Логи" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 8" />
                         <Button Content="Папки" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 8" />
                         <Button Content="Сеть" Style="{StaticResource NavButton}" IsEnabled="False" Margin="0 0 0 8" />
@@ -182,80 +182,121 @@
                         <ColumnDefinition Width="1*" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- System functions -->
-                    <Border Style="{StaticResource CardBorder}" Grid.Column="0" Padding="18" Margin="0 0 14 0">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
+                    <StackPanel Grid.Column="0" Orientation="Vertical">
+                        <!-- System functions -->
+                        <Border Style="{StaticResource CardBorder}" Padding="18" Margin="0 0 0 14">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
 
-                            <TextBlock Text="Системные функции"
-                                       FontSize="18"
-                                       FontWeight="SemiBold"
-                                       Margin="0 0 0 14" />
+                                <TextBlock Text="Системные функции"
+                                           FontSize="18"
+                                           FontWeight="SemiBold"
+                                           Margin="0 0 0 14" />
 
-                        <WrapPanel x:Name="ActionsPanel" Grid.Row="1" Margin="0" HorizontalAlignment="Stretch">
-                            <Button Content="Перезагрузить ПК"
-                                    Style="{StaticResource BaseButton}"
-                                    Height="44"
-                                    MinWidth="170"
-                                    Margin="0 12 12 12"
-                                    Click="OnRebootClicked"
-                                    Tag="reboot перезагрузка рестарт" />
-                            <Button x:Name="TouchToggleButton"
-                                    Content="Сенсор: проверка..."
-                                    Style="{StaticResource BaseButton}"
-                                    Height="44"
-                                    MinWidth="170"
-                                    Margin="0 12 12 12"
-                                    Click="OnTouchToggleClicked"
-                                    Tag="сенсор touch включить отключить" />
-                            <Button Content="Перезапуск сенсора"
-                                    Style="{StaticResource BaseButton}"
-                                    Height="44"
-                                    MinWidth="170"
-                                    Margin="0 12 12 12"
-                                    Click="OnRestartTouchClicked"
-                                    Tag="сенсор перезапуск touch reset" />
-                            <Button Content="Перезапуск COM-портов"
-                                    Style="{StaticResource BaseButton}"
-                                    Height="44"
-                                    MinWidth="170"
-                                    Margin="0 12 12 12"
-                                    Click="OnRestartComClicked"
-                                    Tag="com port serial rs232" />
-                            <Button Content="Перезапуск и очистка дисп. печати"
-                                    Style="{StaticResource BaseButton}"
-                                    Height="44"
-                                    MinWidth="230"
-                                    Margin="0 12 12 12"
-                                    Click="OnRestartPrintSpoolerClicked"
-                                    Tag="печать spooler очередь принтер" />
-                            <Button Content="Настройка TLS 1.2"
-                                    Style="{StaticResource BaseButton}"
-                                    Height="44"
-                                    MinWidth="170"
-                                    Margin="0 12 12 12"
-                                    Click="OnConfigureTlsClicked"
-                                    Tag="tls ssl протокол" />
-                            <Button Content="Очистить мусор"
-                                    Style="{StaticResource BaseButton}"
-                                    Height="44"
-                                    MinWidth="170"
-                                    Margin="0 12 12 12"
-                                    Click="OnCleanupClicked"
-                                    Tag="очистка temp кеш cache браузер" />
-                            <Button Content="Отключить защиту и брандмауэр"
-                                    Style="{StaticResource BaseButton}"
-                                    Height="44"
-                                    MinWidth="220"
-                                    Margin="0 12 12 12"
-                                    Click="OnDisableSecurityClicked"
-                                    Tag="defender firewall защита брандмауэр отключить" />
-                        </WrapPanel>
-                    </Grid>
-                </Border>
+                                <WrapPanel x:Name="ActionsPanel" Grid.Row="1" Margin="0" HorizontalAlignment="Stretch">
+                                    <Button Content="Перезагрузить ПК"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="170"
+                                            Margin="0 12 12 12"
+                                            Click="OnRebootClicked"
+                                            Tag="reboot перезагрузка рестарт" />
+                                    <Button x:Name="TouchToggleButton"
+                                            Content="Сенсор: проверка..."
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="170"
+                                            Margin="0 12 12 12"
+                                            Click="OnTouchToggleClicked"
+                                            Tag="сенсор touch включить отключить" />
+                                    <Button Content="Перезапуск сенсора"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="170"
+                                            Margin="0 12 12 12"
+                                            Click="OnRestartTouchClicked"
+                                            Tag="сенсор перезапуск touch reset" />
+                                    <Button Content="Перезапуск COM-портов"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="170"
+                                            Margin="0 12 12 12"
+                                            Click="OnRestartComClicked"
+                                            Tag="com port serial rs232" />
+                                    <Button Content="Перезапуск и очистка дисп. печати"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="230"
+                                            Margin="0 12 12 12"
+                                            Click="OnRestartPrintSpoolerClicked"
+                                            Tag="печать spooler очередь принтер" />
+                                    <Button Content="Настройка TLS 1.2"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="170"
+                                            Margin="0 12 12 12"
+                                            Click="OnConfigureTlsClicked"
+                                            Tag="tls ssl протокол" />
+                                    <Button Content="Очистить мусор"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="170"
+                                            Margin="0 12 12 12"
+                                            Click="OnCleanupClicked"
+                                            Tag="очистка temp кеш cache браузер" />
+                                    <Button Content="Отключить защиту и брандмауэр"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="220"
+                                            Margin="0 12 12 12"
+                                            Click="OnDisableSecurityClicked"
+                                            Tag="defender firewall защита брандмауэр отключить" />
+                                </WrapPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- IIKO functions -->
+                        <Border Style="{StaticResource CardBorder}" Padding="18">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="IIKO"
+                                           FontSize="18"
+                                           FontWeight="SemiBold"
+                                           Margin="0 0 0 14" />
+
+                                <WrapPanel x:Name="IikoActionsPanel" Grid.Row="1" Margin="0" HorizontalAlignment="Stretch">
+                                    <Button Content="Закрыть iikoFront"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="180"
+                                            Margin="0 12 12 12"
+                                            Click="OnCloseIikoFrontClicked"
+                                            Tag="iiko front закрыть завершить процесс" />
+                                    <Button Content="Перезапустить iikoFront"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="200"
+                                            Margin="0 12 12 12"
+                                            Click="OnRestartIikoFrontClicked"
+                                            Tag="iiko front перезапуск restart" />
+                                    <Button Content="Обновить iikoCard"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="180"
+                                            Margin="0 12 12 12"
+                                            Click="OnUpdateIikoCardClicked"
+                                            Tag="iiko card обновление installer" />
+                                </WrapPanel>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
 
                     <!-- Log panel -->
                     <Border Style="{StaticResource CardBorder}" Grid.Column="1" Padding="16">

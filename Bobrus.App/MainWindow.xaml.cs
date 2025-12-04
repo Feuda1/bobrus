@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.Net.Http;
+using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Input;
@@ -27,6 +29,8 @@ public partial class MainWindow : Window
     private readonly SecurityService _securityService = new();
     private readonly TlsConfigurator _tlsConfigurator = new();
     private readonly PrintSpoolService _printSpoolService = new();
+    private const string IikoFrontExePath = @"C:\Program Files\iiko\iikoRMS\Front.Net\iikoFront.Net.exe";
+    private const string IikoCardUrl = "https://iiko.biz/ru-RU/About/DownloadPosInstaller?useRc=False";
     private Action? _pendingConfirmAction;
     private bool? _isTouchEnabled;
     private List<Button> _actionButtons = new();
@@ -134,7 +138,9 @@ public partial class MainWindow : Window
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         UiLogBuffer.OnLog += OnUiLog;
-        _actionButtons = ActionsPanel.Children.OfType<Button>().ToList();
+        _actionButtons = ActionsPanel.Children.OfType<Button>()
+            .Concat(IikoActionsPanel.Children.OfType<Button>())
+            .ToList();
         await RefreshTouchStateAsync();
     }
 
@@ -455,6 +461,163 @@ public partial class MainWindow : Window
             button.Content = "Перезапуск и очистка дисп. печати";
             button.IsEnabled = true;
         }
+    }
+
+    private async void OnCloseIikoFrontClicked(object sender, RoutedEventArgs e)
+    {
+        var button = (Button)sender;
+        button.IsEnabled = false;
+        button.Content = "Закрываем...";
+        try
+        {
+            _logger.Information("Закрытие iikoFront: старт");
+            var killed = await KillIikoFrontAsync();
+            if (killed > 0)
+            {
+                ShowNotification($"iikoFront закрыт ({killed} процессов)", NotificationType.Success);
+                _logger.Information("Закрытие iikoFront: завершено, убито {Count}", killed);
+            }
+            else
+            {
+                ShowNotification("iikoFront не запущен", NotificationType.Info);
+                _logger.Information("Закрытие iikoFront: процессов не найдено");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Ошибка при закрытии iikoFront");
+            ShowNotification($"Ошибка закрытия iikoFront: {ex.Message}", NotificationType.Error);
+        }
+        finally
+        {
+            button.Content = "Закрыть iikoFront";
+            button.IsEnabled = true;
+        }
+    }
+
+    private async void OnRestartIikoFrontClicked(object sender, RoutedEventArgs e)
+    {
+        var button = (Button)sender;
+        button.IsEnabled = false;
+        button.Content = "Перезапуск...";
+        try
+        {
+            _logger.Information("Перезапуск iikoFront: старт");
+            await KillIikoFrontAsync();
+            await Task.Delay(800);
+
+            if (!File.Exists(IikoFrontExePath))
+            {
+                ShowNotification("Не найден iikoFront.Net.exe по стандартному пути", NotificationType.Error);
+                _logger.Error("Перезапуск iikoFront: файл не найден {Path}", IikoFrontExePath);
+                return;
+            }
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = IikoFrontExePath,
+                UseShellExecute = true
+            };
+
+            var proc = Process.Start(psi);
+            if (proc == null)
+            {
+                ShowNotification("Не удалось запустить iikoFront", NotificationType.Error);
+                _logger.Error("Перезапуск iikoFront: Process.Start вернул null");
+                return;
+            }
+
+            ShowNotification("iikoFront перезапускается", NotificationType.Success);
+            _logger.Information("Перезапуск iikoFront: запущен PID {Pid}", proc.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Ошибка перезапуска iikoFront");
+            ShowNotification($"Ошибка перезапуска iikoFront: {ex.Message}", NotificationType.Error);
+        }
+        finally
+        {
+            button.Content = "Перезапустить iikoFront";
+            button.IsEnabled = true;
+        }
+    }
+
+    private async void OnUpdateIikoCardClicked(object sender, RoutedEventArgs e)
+    {
+        var button = (Button)sender;
+        button.IsEnabled = false;
+        button.Content = "Загрузка...";
+        var tempPath = Path.Combine(Path.GetTempPath(), "iikoCardInstaller.exe");
+
+        try
+        {
+            _logger.Information("Обновление iikoCard: загрузка из {Url}", IikoCardUrl);
+            using var response = await _httpClient.GetAsync(IikoCardUrl, HttpCompletionOption.ResponseHeadersRead);
+            response.EnsureSuccessStatusCode();
+
+            await using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            await using (var stream = await response.Content.ReadAsStreamAsync())
+            {
+                await stream.CopyToAsync(fs);
+            }
+
+            button.Content = "Установка...";
+            _logger.Information("Обновление iikoCard: загрузка завершена, запускаем установку {Path}", tempPath);
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = tempPath,
+                Arguments = "/quiet /norestart",
+                UseShellExecute = true,
+                Verb = "runas"
+            };
+
+            var proc = Process.Start(psi);
+            if (proc == null)
+            {
+                ShowNotification("Не удалось запустить установщик iikoCard", NotificationType.Error);
+                _logger.Error("Обновление iikoCard: Process.Start вернул null");
+                return;
+            }
+
+            ShowNotification("Установка iikoCard запущена", NotificationType.Success);
+            _logger.Information("Обновление iikoCard: процесс установки PID {Pid}", proc.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Ошибка обновления iikoCard");
+            ShowNotification($"Ошибка обновления iikoCard: {ex.Message}", NotificationType.Error);
+        }
+        finally
+        {
+            button.Content = "Обновить iikoCard";
+            button.IsEnabled = true;
+        }
+    }
+
+    private Task<int> KillIikoFrontAsync()
+    {
+        return Task.Run(() =>
+        {
+            var processes = Process.GetProcessesByName("iikoFront.Net");
+            var killed = 0;
+            foreach (var proc in processes)
+            {
+                try
+                {
+                    var pid = proc.Id;
+                    proc.Kill(true);
+                    proc.WaitForExit(5000);
+                    killed++;
+                    _logger.Information("Процесс iikoFront.Net {Pid} завершён", pid);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warning(ex, "Не удалось завершить iikoFront.Net PID {Pid}", proc.Id);
+                }
+            }
+            return killed;
+        });
     }
 
     private async void OnConfigureTlsClicked(object sender, RoutedEventArgs e)
