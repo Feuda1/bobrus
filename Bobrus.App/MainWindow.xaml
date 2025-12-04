@@ -125,8 +125,11 @@
                     </Grid.ColumnDefinitions>
                     <Viewbox Width="18" Height="18" VerticalAlignment="Center">
                         <Path Stroke="{StaticResource TextSecondaryBrush}"
-                              StrokeThickness="1.4"
-                              Data="M10,14 A4,4 0 1 1 14,10 L18,14" />
+                              StrokeThickness="1.6"
+                              StrokeLineJoin="Round"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              Data="M7.5,2 A5.5,5.5 0 1 1 2,7.5 A5.5,5.5 0 0 1 7.5,2 M11.5,11.5 L16,16" />
                     </Viewbox>
                     <TextBox x:Name="SearchBox"
                              Grid.Column="1"
