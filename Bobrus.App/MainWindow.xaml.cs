@@ -574,15 +574,13 @@ public partial class MainWindow : Window
             var installerSize = new FileInfo(tempPath).Length;
             _logger.Information("Обновление iikoCard: размер файла {Size} байт", installerSize);
 
-            var installerType = DetectInstallerType(tempPath);
-            if (installerType == InstallerType.Html || installerType == InstallerType.Unknown)
+            var psi = new ProcessStartInfo
             {
-                ShowNotification("Скачан некорректный установщик iikoCard (ожидался .exe/.msi)", NotificationType.Error);
-                _logger.Error("Обновление iikoCard: неизвестный формат файла, установка прервана");
-                return;
-            }
-
-            var psi = BuildInstallerStartInfo(tempPath, installerType);
+                FileName = tempPath,
+                Arguments = "/S",
+                UseShellExecute = true,
+                Verb = "runas"
+            };
 
             var proc = Process.Start(psi);
             if (proc == null)
@@ -595,15 +593,15 @@ public partial class MainWindow : Window
             ShowNotification("Установка iikoCard запущена", NotificationType.Success);
             _logger.Information("Обновление iikoCard: процесс установки PID {Pid}", proc.Id);
 
-            var exitCode = await WaitForInstallerExitAsync(proc, tempPath);
-            _logger.Information("Обновление iikoCard: установка завершена с кодом {Code}", exitCode);
-            if (exitCode == 0)
+            await Task.Run(() => proc.WaitForExit());
+            _logger.Information("Обновление iikoCard: установка завершена с кодом {Code}", proc.ExitCode);
+            if (proc.ExitCode == 0)
             {
                 ShowNotification("iikoCard установлена", NotificationType.Success);
             }
             else
             {
-                ShowNotification($"Установка iikoCard завершилась с кодом {exitCode}", NotificationType.Warning);
+                ShowNotification($"Установка iikoCard завершилась с кодом {proc.ExitCode}", NotificationType.Warning);
             }
         }
         catch (Exception ex)
@@ -616,126 +614,6 @@ public partial class MainWindow : Window
             button.Content = "Обновить iikoCard";
             button.IsEnabled = true;
         }
-    }
-
-    private enum InstallerType
-    {
-        Unknown,
-        Exe,
-        Msi,
-        Html
-    }
-
-    private InstallerType DetectInstallerType(string path)
-    {
-        try
-        {
-            var bytes = File.ReadAllBytes(path);
-            if (bytes.Length >= 4 && bytes[0] == 'M' && bytes[1] == 'Z')
-            {
-                // EXE
-                return InstallerType.Exe;
-            }
-
-            if (bytes.Length >= 8 &&
-                bytes[0] == 0xD0 && bytes[1] == 0xCF && bytes[2] == 0x11 && bytes[3] == 0xE0)
-            {
-                // MSI (OLE structured storage)
-                return InstallerType.Msi;
-            }
-
-            var textSample = System.Text.Encoding.UTF8.GetString(bytes, 0, Math.Min(bytes.Length, 500)).ToLowerInvariant();
-            if (textSample.Contains("<html") || textSample.Contains("<!doctype html"))
-            {
-                return InstallerType.Html;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.Warning(ex, "Не удалось определить тип файла установщика");
-        }
-
-        return InstallerType.Unknown;
-    }
-
-    private ProcessStartInfo BuildInstallerStartInfo(string path, InstallerType type)
-    {
-        if (type == InstallerType.Msi)
-        {
-            return new ProcessStartInfo
-            {
-                FileName = "msiexec.exe",
-                Arguments = $"/i \"{path}\" /quiet /norestart",
-                UseShellExecute = true,
-                Verb = "runas"
-            };
-        }
-
-        // exe
-        return new ProcessStartInfo
-        {
-            FileName = path,
-            Arguments = "/S",
-            UseShellExecute = true,
-            Verb = "runas"
-        };
-    }
-
-    private async Task<int> WaitForInstallerExitAsync(Process process, string installerPath)
-    {
-        var watch = Stopwatch.StartNew();
-        var max = TimeSpan.FromMinutes(10);
-        var name = Path.GetFileNameWithoutExtension(installerPath);
-        var startTime = DateTime.Now;
-
-        try
-        {
-            if (!process.HasExited)
-            {
-                await Task.Run(() => process.WaitForExit((int)max.TotalMilliseconds));
-            }
-        }
-        catch
-        {
-            // ignore
-        }
-
-        if (process.HasExited && watch.Elapsed < TimeSpan.FromSeconds(3))
-        {
-            // Возможно, основной процесс разорвало, ищем дочерние с тем же именем.
-            while (watch.Elapsed < max)
-            {
-                var others = Process.GetProcessesByName(name)
-                    .Where(p => p.StartTime >= startTime && !p.HasExited)
-                    .ToList();
-
-                if (others.Count == 0)
-                {
-                    break;
-                }
-
-                foreach (var p in others)
-                {
-                    try
-                    {
-                        _logger.Information("Обновление iikoCard: ждём дочерний процесс PID {Pid}", p.Id);
-                        await Task.Run(() => p.WaitForExit((int)max.Subtract(watch.Elapsed).TotalMilliseconds));
-                        if (p.HasExited)
-                        {
-                            return p.ExitCode;
-                        }
-                    }
-                    catch
-                    {
-                        // ignore
-                    }
-                }
-
-                await Task.Delay(1000);
-            }
-        }
-
-        return process.HasExited ? process.ExitCode : -1;
     }
 
     private async Task DownloadFileWithProgressAsync(string url, string destinationPath, IProgress<int> progress, CancellationToken token)

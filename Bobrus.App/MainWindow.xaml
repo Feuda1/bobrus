@@ -306,14 +306,14 @@
                                     Padding="10">
                                 <RichTextBox x:Name="LogRichTextBox"
                                              Background="Transparent"
-                                             BorderThickness="0"
-                                             IsReadOnly="True"
-                                             IsDocumentEnabled="False"
-                                             IsHitTestVisible="True"
-                                             VerticalScrollBarVisibility="Auto"
-                                             HorizontalScrollBarVisibility="Disabled"
-                                             Padding="0"
-                                             Foreground="{StaticResource TextPrimaryBrush}">
+                                            BorderThickness="0"
+                                            IsReadOnly="True"
+                                            IsDocumentEnabled="False"
+                                            IsHitTestVisible="True"
+                                            VerticalScrollBarVisibility="Auto"
+                                            HorizontalScrollBarVisibility="Disabled"
+                                            Padding="0"
+                                            Foreground="{StaticResource TextPrimaryBrush}">
                                     <FlowDocument>
                                         <Paragraph/>
                                     </FlowDocument>
