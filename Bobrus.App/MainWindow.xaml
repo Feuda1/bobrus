@@ -215,6 +215,12 @@
                                     MinWidth="170"
                                     Margin="0 12 12 12"
                                     Click="OnCleanupClicked" />
+                            <Button Content="Отключить защиту и брандмауэр"
+                                    Style="{StaticResource DangerButton}"
+                                    Height="44"
+                                    MinWidth="220"
+                                    Margin="0 12 12 12"
+                                    Click="OnDisableSecurityClicked" />
                         </WrapPanel>
                     </Grid>
                 </Border>

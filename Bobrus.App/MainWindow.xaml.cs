@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private readonly TouchDeviceManager _touchManager = new();
     private readonly CleaningService _cleaningService = new();
     private readonly ComPortManager _comPortManager = new();
+    private readonly SecurityService _securityService = new();
     private Action? _pendingConfirmAction;
     private bool? _isTouchEnabled;
 
@@ -394,6 +395,40 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnDisableSecurityClicked(object sender, RoutedEventArgs e)
+    {
+        ShowConfirm(
+            "Отключение защитника и брандмауэра",
+            "Отключить Windows Defender и брандмауэр? Это снижает защиту системы. Действие требует админ-прав.",
+            async () =>
+            {
+                try
+                {
+                    ShowNotification("Отключаем защитник...", NotificationType.Warning);
+                    var defOk = await _securityService.DisableDefenderAsync();
+                    _logger.Information("Отключение защитника: {Result}", defOk ? "успех" : "ошибка");
+
+                    ShowNotification("Отключаем брандмауэр...", NotificationType.Warning);
+                    var fwOk = await _securityService.DisableFirewallAsync();
+                    _logger.Information("Отключение брандмауэра: {Result}", fwOk ? "успех" : "ошибка");
+
+                    if (defOk && fwOk)
+                    {
+                        ShowNotification("Защитник и брандмауэр отключены", NotificationType.Success);
+                    }
+                    else
+                    {
+                        ShowNotification("Часть действий могла не выполниться. Проверьте вручную.", NotificationType.Error);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex, "Ошибка при отключении защитника/брандмауэра");
+                    ShowNotification($"Ошибка при отключении защиты: {ex.Message}", NotificationType.Error);
+                }
+            });
+    }
+
     private void UpdateTouchButtonVisual()
     {
         if (_isTouchEnabled == true)
@@ -523,7 +558,8 @@ public partial class MainWindow : Window
     {
         Info,
         Success,
-        Error
+        Error,
+        Warning
     }
 
     private void ShowNotification(string message, NotificationType type)
@@ -532,6 +568,7 @@ public partial class MainWindow : Window
         {
             NotificationType.Success => (Brush)FindResource("AccentBrush"),
             NotificationType.Error => (Brush)FindResource("DangerBrush"),
+            NotificationType.Warning => (Brush)FindResource("AccentBrush"),
             _ => (Brush)FindResource("AccentBlueBrush")
         };
 
