@@ -23,6 +23,7 @@ public partial class MainWindow : Window
     private readonly UpdateService _updateService;
     private readonly TouchDeviceManager _touchManager = new();
     private readonly CleaningService _cleaningService = new();
+    private readonly ComPortManager _comPortManager = new();
     private Action? _pendingConfirmAction;
     private bool? _isTouchEnabled;
 
@@ -359,6 +360,38 @@ public partial class MainWindow : Window
         if (mb < 1024) return $"{mb:F1} МБ";
         double gb = mb / 1024.0;
         return $"{gb:F1} ГБ";
+    }
+
+    private async void OnRestartComClicked(object sender, RoutedEventArgs e)
+    {
+        var button = (Button)sender;
+        button.IsEnabled = false;
+        button.Content = "Перезапуск...";
+        try
+        {
+            _logger.Information("Перезапуск COM: старт");
+            var ok = await _comPortManager.RestartPortsAsync();
+            if (!ok)
+            {
+                ShowNotification("COM-порты не найдены", NotificationType.Error);
+                _logger.Warning("Перезапуск COM: устройства не найдены");
+            }
+            else
+            {
+                ShowNotification("COM-порты перезапущены", NotificationType.Success);
+                _logger.Information("Перезапуск COM: завершено");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Ошибка перезапуска COM-портов");
+            ShowNotification($"Ошибка перезапуска COM: {ex.Message}", NotificationType.Error);
+        }
+        finally
+        {
+            button.Content = "Перезапуск COM-портов";
+            button.IsEnabled = true;
+        }
     }
 
     private void UpdateTouchButtonVisual()

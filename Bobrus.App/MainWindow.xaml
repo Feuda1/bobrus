@@ -203,6 +203,12 @@
                                     MinWidth="170"
                                     Margin="0 12 12 12"
                                     Click="OnRestartTouchClicked" />
+                            <Button Content="Перезапуск COM-портов"
+                                    Style="{StaticResource BaseButton}"
+                                    Height="44"
+                                    MinWidth="170"
+                                    Margin="0 12 12 12"
+                                    Click="OnRestartComClicked" />
                             <Button Content="Очистить мусор"
                                     Style="{StaticResource BaseButton}"
                                     Height="44"
