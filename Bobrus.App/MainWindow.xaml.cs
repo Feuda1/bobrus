@@ -720,30 +720,33 @@ public partial class MainWindow : Window
         await OpenLogAsync(@"C:\UTM\transporter\l\transport_info.log", description: "UTM transport_info.log");
     }
 
-    private async void OnCollectLogsClicked(object sender, RoutedEventArgs e)
+    private void OnCollectLogsClicked(object sender, RoutedEventArgs e)
     {
-        var button = (Button)sender;
-        button.IsEnabled = false;
-        button.Content = "Сбор...";
+        CollectStartDate.SelectedDate ??= DateTime.Today;
+        CollectEndDate.SelectedDate ??= DateTime.Today;
+        CollectIncludeCash.IsChecked = false;
+        CollectIncludeEntities.IsChecked = false;
+        LogCollectOverlay.Visibility = Visibility.Visible;
+    }
+
+    private void OnLogCollectCancelClicked(object sender, RoutedEventArgs e)
+    {
+        LogCollectOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    private async void OnLogCollectAcceptClicked(object sender, RoutedEventArgs e)
+    {
+        var start = CollectStartDate.SelectedDate ?? DateTime.Today;
+        var end = CollectEndDate.SelectedDate ?? DateTime.Today;
+        var includeCash = CollectIncludeCash.IsChecked == true;
+        var includeEntities = CollectIncludeEntities.IsChecked == true;
 
         try
         {
-            var includeCashServer = MessageBox.Show(
-                "Добавить всю папку CashServer?",
-                "Сбор логов",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question) == MessageBoxResult.Yes;
-
-            var includeEntities = MessageBox.Show(
-                "Добавить базу EntitiesStorage?",
-                "Сбор логов",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question) == MessageBoxResult.Yes;
-
             var zipName = $"BobrusLogs_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
             var zipPath = Path.Combine(Path.GetTempPath(), zipName);
 
-            await Task.Run(() => CreateLogsArchive(zipPath, includeCashServer, includeEntities));
+            await Task.Run(() => CreateLogsArchive(zipPath, includeCash, includeEntities, start, end));
 
             ShowNotification($"Архив логов готов: {zipPath}", NotificationType.Success);
             _logger.Information("Сбор логов завершён: {Path}", zipPath);
@@ -769,20 +772,17 @@ public partial class MainWindow : Window
         }
         finally
         {
-            button.Content = "Собрать логи";
-            button.IsEnabled = true;
+            LogCollectOverlay.Visibility = Visibility.Collapsed;
         }
     }
 
-    private void CreateLogsArchive(string zipPath, bool includeCashServer, bool includeEntities)
+    private void CreateLogsArchive(string zipPath, bool includeCashServer, bool includeEntities, DateTime startDate, DateTime endDate)
     {
         var logsDir = Path.Combine(_cashServerBase, "Logs");
         var cashRoot = _cashServerBase;
         var entitiesDir = Path.Combine(_cashServerBase, "EntitiesStorage");
-        var startDate = Dispatcher.Invoke(() => LogStartDate.SelectedDate) ?? DateTime.Today;
-        var endDateRaw = Dispatcher.Invoke(() => LogEndDate.SelectedDate) ?? DateTime.Today;
         var start = startDate.Date;
-        var end = endDateRaw.Date.AddDays(1).AddTicks(-1);
+        var end = endDate.Date.AddDays(1).AddTicks(-1);
 
         if (File.Exists(zipPath))
         {

@@ -290,38 +290,6 @@
                                            Margin="0 0 0 14" />
 
                                 <Grid Grid.Row="1">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="*" />
-                                    </Grid.RowDefinitions>
-
-                                    <WrapPanel Margin="0 0 0 12" HorizontalAlignment="Left" VerticalAlignment="Top">
-                                        <TextBlock Text="Период:"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0 0 10 0"
-                                                   Foreground="{StaticResource TextSecondaryBrush}" />
-                                        <DatePicker x:Name="LogStartDate"
-                                                    SelectedDate="{x:Static sys:DateTime.Today}"
-                                                    Width="150"
-                                                    Margin="0 0 10 0" />
-                                        <TextBlock Text="по"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0 0 10 0"
-                                                   Foreground="{StaticResource TextSecondaryBrush}" />
-                                        <DatePicker x:Name="LogEndDate"
-                                                    SelectedDate="{x:Static sys:DateTime.Today}"
-                                                    Width="150"
-                                                    Margin="0 0 20 0" />
-                                        <CheckBox x:Name="IncludeCashServerToggle"
-                                                  Content="Вся папка CashServer"
-                                                  Margin="0 0 16 0"
-                                                  Foreground="{StaticResource TextPrimaryBrush}" />
-                                        <CheckBox x:Name="IncludeEntitiesToggle"
-                                                  Content="База EntitiesStorage"
-                                                  Margin="0 0 0 0"
-                                                  Foreground="{StaticResource TextPrimaryBrush}" />
-                                    </WrapPanel>
-
                                 <WrapPanel x:Name="LogsActionsPanel" Grid.Row="1" Margin="0" HorizontalAlignment="Stretch">
                                     <Button Content="config.xml"
                                             Style="{StaticResource BaseButton}"
@@ -573,6 +541,80 @@
                                     Style="{StaticResource AccentButton}"
                                     Width="120"
                                     Click="OnConfirmAcceptClicked" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- Log collect overlay -->
+        <Grid x:Name="LogCollectOverlay"
+              Grid.RowSpan="3"
+              Background="#88000000"
+              Visibility="Collapsed">
+            <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Width="520">
+                <Border Background="{StaticResource PanelBrush}"
+                        BorderBrush="{StaticResource BorderBrushMuted}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="18">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Сбор логов"
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                            <Button Content="✕"
+                                    Grid.Column="1"
+                                    Style="{StaticResource WindowIconButton}"
+                                    Width="32"
+                                    Height="28"
+                                    Click="OnLogCollectCancelClicked" />
+                        </Grid>
+
+                        <StackPanel Margin="0 12 0 0">
+                            <TextBlock Text="Выберите период" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <StackPanel Orientation="Horizontal">
+                                <DatePicker x:Name="CollectStartDate"
+                                            Width="160"
+                                            SelectedDate="{x:Static sys:DateTime.Today}"
+                                            Margin="0 0 10 0" />
+                                <TextBlock Text="по"
+                                           VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Margin="0 0 10 0" />
+                                <DatePicker x:Name="CollectEndDate"
+                                            Width="160"
+                                            SelectedDate="{x:Static sys:DateTime.Today}" />
+                            </StackPanel>
+
+                            <TextBlock Text="Дополнительно" Foreground="{StaticResource TextSecondaryBrush}" Margin="0 4 0 0" />
+                            <StackPanel Orientation="Vertical">
+                                <CheckBox x:Name="CollectIncludeCash"
+                                          Content="Добавить всю папку CashServer"
+                                          Foreground="{StaticResource TextPrimaryBrush}"
+                                          Margin="0 0 4 4" />
+                                <CheckBox x:Name="CollectIncludeEntities"
+                                          Content="Добавить EntitiesStorage"
+                                          Foreground="{StaticResource TextPrimaryBrush}"
+                                          Margin="0 0 4 0" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0 16 0 0">
+                            <Button Content="Отмена"
+                                    Style="{StaticResource BaseButton}"
+                                    Width="110"
+                                    Margin="0 0 10 0"
+                                    Click="OnLogCollectCancelClicked" />
+                            <Button Content="Собрать"
+                                    Style="{StaticResource AccentButton}"
+                                    Width="140"
+                                    Click="OnLogCollectAcceptClicked" />
                         </StackPanel>
                     </StackPanel>
                 </Border>
