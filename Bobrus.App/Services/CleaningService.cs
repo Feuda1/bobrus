@@ -16,32 +16,33 @@ internal sealed class CleaningService
     {
         var results = new List<CleanupResult>();
 
-        var targets = new List<Func<Task<CleanupResult>>>
+        var targets = new List<(string Name, Func<Task<CleanupResult>> Task)>
         {
-            () => CleanDirectory("Пользовательский TEMP", Path.GetTempPath()),
-            () => CleanDirectory("Windows\\Temp", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp")),
-            () => CleanDirectory("Центр обновлений (Download)", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "SoftwareDistribution", "Download")),
-            () => CleanDirectory("Delivery Optimization", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "SoftwareDistribution", "DeliveryOptimization", "Cache")),
-            () => CleanDirectory("WER отчёты", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Microsoft", "Windows", "WER")),
-            () => CleanDirectory("Edge кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Edge\User Data\Default\Cache")),
-            () => CleanDirectory("Chrome кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Google\Chrome\User Data\Default\Cache")),
-            () => CleanDirectory("Yandex кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Yandex\YandexBrowser\User Data\Default\Cache")),
-            () => CleanDirectory("Opera кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Opera Software\Opera Stable\Cache")),
-            () => CleanDirectory("Opera GX кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Opera Software\Opera GX Stable\Cache")),
-            () => CleanDirectory("Brave кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"BraveSoftware\Brave-Browser\User Data\Default\Cache")),
-            () => CleanDirectory("Vivaldi кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Vivaldi\User Data\Default\Cache")),
-            () => CleanDirectory("Chromium кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Chromium\User Data\Default\Cache")),
-            () => CleanFirefoxCaches(),
-            () => CleanDirectory("IE/INet кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Windows\INetCache")),
-            EmptyRecycleBin
+            ("Пользовательский TEMP", () => CleanDirectory("Пользовательский TEMP", Path.GetTempPath())),
+            ("Windows\\Temp", () => CleanDirectory("Windows\\Temp", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp"))),
+            ("Центр обновлений (Download)", () => CleanDirectory("Центр обновлений (Download)", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "SoftwareDistribution", "Download"))),
+            ("Delivery Optimization", () => CleanDirectory("Delivery Optimization", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "SoftwareDistribution", "DeliveryOptimization", "Cache"))),
+            ("WER отчёты", () => CleanDirectory("WER отчёты", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Microsoft", "Windows", "WER"))),
+            ("Edge кеш", () => CleanDirectory("Edge кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Edge\User Data\Default\Cache"))),
+            ("Chrome кеш", () => CleanDirectory("Chrome кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Google\Chrome\User Data\Default\Cache"))),
+            ("Yandex кеш", () => CleanDirectory("Yandex кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Yandex\YandexBrowser\User Data\Default\Cache"))),
+            ("Opera кеш", () => CleanDirectory("Opera кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Opera Software\Opera Stable\Cache"))),
+            ("Opera GX кеш", () => CleanDirectory("Opera GX кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Opera Software\Opera GX Stable\Cache"))),
+            ("Brave кеш", () => CleanDirectory("Brave кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"BraveSoftware\Brave-Browser\User Data\Default\Cache"))),
+            ("Vivaldi кеш", () => CleanDirectory("Vivaldi кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Vivaldi\User Data\Default\Cache"))),
+            ("Chromium кеш", () => CleanDirectory("Chromium кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Chromium\User Data\Default\Cache"))),
+            ("Firefox кеш", CleanFirefoxCaches),
+            ("IE/INet кеш", () => CleanDirectory("IE/INet кеш", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Microsoft\Windows\INetCache"))),
+            ("Логи iiko CashServer (старше 30 дней)", () => CleanOldLogs("Логи iiko CashServer (старше 30 дней)", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"iiko\CashServer\Logs"), TimeSpan.FromDays(30))),
+            ("Корзина", EmptyRecycleBin)
         };
 
         foreach (var target in targets)
         {
             try
             {
-                progress?.Invoke(new CleanupProgress(GetTargetName(target), true, 0));
-                var result = await target();
+                progress?.Invoke(new CleanupProgress(target.Name, true, 0));
+                var result = await target.Task();
                 progress?.Invoke(new CleanupProgress(result.Name, false, result.BytesFreed));
                 results.Add(result);
             }
@@ -53,13 +54,6 @@ internal sealed class CleaningService
 
         return results;
     }
-
-    private static string GetTargetName(Func<Task<CleanupResult>> target) =>
-        target.Method.Name switch
-        {
-            nameof(EmptyRecycleBin) => "Корзина",
-            _ => "Очистка"
-        };
 
     private static Task<CleanupResult> CleanDirectory(string name, string path)
     {
@@ -193,6 +187,41 @@ internal sealed class CleaningService
             }
 
             return new CleanupResult("Корзина", 0);
+        });
+    }
+
+    private static Task<CleanupResult> CleanOldLogs(string name, string path, TimeSpan maxAge)
+    {
+        return Task.Run(() =>
+        {
+            var freed = 0L;
+            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+            {
+                return new CleanupResult(name, 0);
+            }
+
+            var threshold = DateTime.UtcNow - maxAge;
+            foreach (var file in SafeEnumFiles(path))
+            {
+                try
+                {
+                    var info = new FileInfo(file);
+                    if (!info.Exists || info.LastWriteTimeUtc > threshold)
+                    {
+                        continue;
+                    }
+
+                    freed += info.Length;
+                    info.IsReadOnly = false;
+                    info.Delete();
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+
+            return new CleanupResult(name, freed);
         });
     }
 
