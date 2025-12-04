@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 
@@ -18,54 +19,51 @@ internal sealed class TlsConfigurator
     {
         return Task.Run(() =>
         {
-            try
-            {
-                foreach (var path in ProtocolPaths)
-                {
-                    using var key = Registry.LocalMachine.CreateSubKey(path, writable: true);
-                    if (key is null)
-                    {
-                        return new TlsConfigResult(false, $"Не удалось открыть ветку реестра: {path}");
-                    }
-                    key.SetValue("Enabled", 1, RegistryValueKind.DWord);
-                    key.SetValue("DisabledByDefault", 0, RegistryValueKind.DWord);
-                }
+            var cmd = string.Join("; ",
+                "New-Item -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\TLS 1.2\\Client' -Force",
+                "New-Item -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\TLS 1.2\\Server' -Force",
+                "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\TLS 1.2\\Client' -Name 'Enabled' -Type DWord -Value 1",
+                "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\TLS 1.2\\Client' -Name 'DisabledByDefault' -Type DWord -Value 0",
+                "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\TLS 1.2\\Server' -Name 'Enabled' -Type DWord -Value 1",
+                "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\TLS 1.2\\Server' -Name 'DisabledByDefault' -Type DWord -Value 0",
+                "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\.NETFramework\\v4.0.30319' -Name 'SchUseStrongCrypto' -Type DWord -Value 1",
+                "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\.NETFramework\\v4.0.30319' -Name 'SchUseStrongCrypto' -Type DWord -Value 1",
+                "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\.NETFramework\\v4.0.30319' -Name 'SystemDefaultTlsVersions' -Type DWord -Value 1",
+                "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\.NETFramework\\v4.0.30319' -Name 'SystemDefaultTlsVersions' -Type DWord -Value 1");
 
-                var strong = EnableDotNetStrongCrypto();
-                if (!strong.Ok)
-                {
-                    return strong;
-                }
-
-                return new TlsConfigResult(true, "Настройки TLS 1.2 применены");
-            }
-            catch (Exception ex)
-            {
-                return new TlsConfigResult(false, ex.Message);
-            }
+            var result = RunElevatedPowerShell(cmd);
+            return result;
         });
     }
 
-    private static TlsConfigResult EnableDotNetStrongCrypto()
+    private static TlsConfigResult RunElevatedPowerShell(string command)
     {
         try
         {
-            SetDword(RegistryHive.LocalMachine, @"SOFTWARE\Microsoft\.NETFramework\v4.0.30319", "SchUseStrongCrypto", 1);
-            SetDword(RegistryHive.LocalMachine, @"SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319", "SchUseStrongCrypto", 1);
-            SetDword(RegistryHive.LocalMachine, @"SOFTWARE\Microsoft\.NETFramework\v4.0.30319", "SystemDefaultTlsVersions", 1);
-            SetDword(RegistryHive.LocalMachine, @"SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319", "SystemDefaultTlsVersions", 1);
-            return new TlsConfigResult(true, "StrongCrypto включен");
+            var psi = new ProcessStartInfo
+            {
+                FileName = "powershell",
+                Arguments = $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"{command}\"",
+                Verb = "runas",
+                UseShellExecute = true,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden
+            };
+
+            using var process = Process.Start(psi);
+            if (process == null)
+            {
+                return new TlsConfigResult(false, "Не удалось запустить PowerShell");
+            }
+
+            process.WaitForExit(30000);
+            return process.ExitCode == 0
+                ? new TlsConfigResult(true, "Настройки TLS 1.2 применены")
+                : new TlsConfigResult(false, $"Код выхода: {process.ExitCode}");
         }
         catch (Exception ex)
         {
-            return new TlsConfigResult(false, $"StrongCrypto: {ex.Message}");
+            return new TlsConfigResult(false, ex.Message);
         }
-    }
-
-    private static void SetDword(RegistryHive hive, string path, string name, int value)
-    {
-        using var baseKey = RegistryKey.OpenBaseKey(hive, RegistryView.Registry64);
-        using var key = baseKey.CreateSubKey(path, writable: true);
-        key?.SetValue(name, value, RegistryValueKind.DWord);
     }
 }

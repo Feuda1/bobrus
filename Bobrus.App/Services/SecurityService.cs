@@ -15,7 +15,7 @@ internal sealed class SecurityService
             "Try { sc.exe stop WinDefend | Out-Null } Catch {}",
             "Try { sc.exe config WinDefend start= disabled | Out-Null } Catch {}");
 
-        var (ok, output) = await RunPowerShellAsync(command);
+        var (ok, output) = await RunPowerShellAsync(command, requireElevation: true);
         return new SecurityActionResult(ok, output);
     }
 
@@ -25,20 +25,22 @@ internal sealed class SecurityService
             "Try { Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False -ErrorAction SilentlyContinue } Catch {}",
             "netsh advfirewall set allprofiles state off");
 
-        var (ok, output) = await RunPowerShellAsync(command);
+        var (ok, output) = await RunPowerShellAsync(command, requireElevation: true);
         return new SecurityActionResult(ok, output);
     }
 
-    private static async Task<(bool ok, string output)> RunPowerShellAsync(string command)
+    private static async Task<(bool ok, string output)> RunPowerShellAsync(string command, bool requireElevation = false)
     {
         var psi = new ProcessStartInfo
         {
             FileName = "powershell",
             Arguments = $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"{command}\"",
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true
+            UseShellExecute = requireElevation,
+            RedirectStandardOutput = !requireElevation,
+            RedirectStandardError = !requireElevation,
+            CreateNoWindow = true,
+            Verb = requireElevation ? "runas" : string.Empty,
+            WindowStyle = ProcessWindowStyle.Hidden
         };
 
         using var process = Process.Start(psi);
@@ -47,11 +49,16 @@ internal sealed class SecurityService
             return (false, "Не удалось запустить PowerShell");
         }
 
-        var stdout = await process.StandardOutput.ReadToEndAsync();
-        var stderr = await process.StandardError.ReadToEndAsync();
-        process.WaitForExit(20000);
+        process.WaitForExit(30000);
 
-        var output = string.IsNullOrWhiteSpace(stderr) ? stdout : stderr;
+        string output = string.Empty;
+        if (!requireElevation)
+        {
+            var stdout = await process.StandardOutput.ReadToEndAsync();
+            var stderr = await process.StandardError.ReadToEndAsync();
+            output = string.IsNullOrWhiteSpace(stderr) ? stdout : stderr;
+        }
+
         return (process.ExitCode == 0, output);
     }
 }
