@@ -8,10 +8,11 @@ using System.Threading.Tasks;
 namespace Bobrus.App.Services;
 
 internal sealed record CleanupResult(string Name, long BytesFreed);
+internal sealed record CleanupProgress(string Name, bool IsStart, long BytesFreed);
 
 internal sealed class CleaningService
 {
-    public async Task<IReadOnlyList<CleanupResult>> RunCleanupAsync()
+    public async Task<IReadOnlyList<CleanupResult>> RunCleanupAsync(Action<CleanupProgress>? progress = null)
     {
         var results = new List<CleanupResult>();
 
@@ -31,7 +32,9 @@ internal sealed class CleaningService
         {
             try
             {
+                progress?.Invoke(new CleanupProgress(GetTargetName(target), true, 0));
                 var result = await target();
+                progress?.Invoke(new CleanupProgress(result.Name, false, result.BytesFreed));
                 results.Add(result);
             }
             catch
@@ -42,6 +45,13 @@ internal sealed class CleaningService
 
         return results;
     }
+
+    private static string GetTargetName(Func<Task<CleanupResult>> target) =>
+        target.Method.Name switch
+        {
+            nameof(EmptyRecycleBin) => "Корзина",
+            _ => "Очистка"
+        };
 
     private static Task<CleanupResult> CleanDirectory(string name, string path)
     {

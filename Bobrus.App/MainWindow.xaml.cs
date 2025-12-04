@@ -271,12 +271,18 @@ public partial class MainWindow : Window
         try
         {
             _logger.Information("Очистка: старт");
-            var results = await _cleaningService.RunCleanupAsync();
-            var freed = results.Sum(r => r.BytesFreed);
-            foreach (var r in results)
+            var results = await _cleaningService.RunCleanupAsync(progress =>
             {
-                _logger.Information("Очистка {Name}: освобождено {Bytes} байт", r.Name, r.BytesFreed);
-            }
+                if (progress.IsStart)
+                {
+                    _logger.Information("Очистка {Name}: начало", progress.Name);
+                }
+                else
+                {
+                    _logger.Information("Очистка {Name}: освобождено {Bytes} байт", progress.Name, progress.BytesFreed);
+                }
+            });
+            var freed = results.Sum(r => r.BytesFreed);
             _logger.Information("Очистка: итог освобождено {Bytes} байт", freed);
             ShowNotification($"Очистка завершена. Освобождено {FormatBytes(freed)}", NotificationType.Success);
         }
