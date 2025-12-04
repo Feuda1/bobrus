@@ -280,12 +280,13 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="ComboBox">
                             <Grid>
-                                <Border x:Name="Border"
-                                        Background="{TemplateBinding Background}"
-                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                        BorderThickness="{TemplateBinding BorderThickness}"
-                                        CornerRadius="4"
-                                        Padding="8 4">
+                                <ToggleButton x:Name="ToggleButton"
+                                              Focusable="False"
+                                              IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                              Background="{TemplateBinding Background}"
+                                              BorderBrush="{TemplateBinding BorderBrush}"
+                                              BorderThickness="{TemplateBinding BorderThickness}"
+                                              Padding="8 4">
                                     <Grid>
                                         <ContentPresenter HorizontalAlignment="Left"
                                                           VerticalAlignment="Center"
@@ -304,7 +305,7 @@
                                               Stroke="{StaticResource TextSecondaryBrush}"
                                               Data="M 0 0 L 5 5 L 10 0" />
                                     </Grid>
-                                </Border>
+                                </ToggleButton>
                                 <Popup x:Name="Popup"
                                        Placement="Bottom"
                                        IsOpen="{TemplateBinding IsDropDownOpen}"
@@ -323,14 +324,14 @@
                             </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                    <Setter TargetName="ToggleButton" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
                                 </Trigger>
                                 <Trigger Property="IsDropDownOpen" Value="True">
                                     <Setter TargetName="Arrow" Property="Stroke" Value="{StaticResource AccentBrush}" />
-                                    <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                    <Setter TargetName="ToggleButton" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
-                                    <Setter TargetName="Border" Property="Opacity" Value="0.6" />
+                                    <Setter TargetName="ToggleButton" Property="Opacity" Value="0.6" />
                                     <Setter TargetName="Arrow" Property="Stroke" Value="{StaticResource TextSecondaryBrush}" />
                                     <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
                                 </Trigger>
