@@ -4,13 +4,13 @@ using System.Net.Http;
 using System.Threading;
 using System.Windows;
 using System.Windows.Input;
-using Bobrus.App.Services;
 using Serilog;
 using ILogger = Serilog.ILogger;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
 using System.Windows.Interop;
+using Bobrus.App.Services;
 
 namespace Bobrus.App;
 
@@ -19,7 +19,9 @@ public partial class MainWindow : Window
     private readonly ILogger _logger = Log.ForContext<MainWindow>();
     private readonly HttpClient _httpClient = new();
     private readonly UpdateService _updateService;
+    private readonly TouchDeviceManager _touchManager = new();
     private Action? _pendingConfirmAction;
+    private bool? _isTouchEnabled;
 
     public MainWindow()
     {
@@ -27,6 +29,7 @@ public partial class MainWindow : Window
         _updateService = new UpdateService(_httpClient);
         VersionText.Text = $"v{_updateService.CurrentVersion}";
         _logger.Information("Bobrus запущен. Текущая версия {Version}", _updateService.CurrentVersion);
+        Loaded += OnLoaded;
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -119,6 +122,11 @@ public partial class MainWindow : Window
         _httpClient.Dispose();
     }
 
+    private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        await RefreshTouchStateAsync();
+    }
+
     private void StartReboot()
     {
         try
@@ -140,6 +148,76 @@ public partial class MainWindow : Window
         {
             _logger.Error(ex, "Ошибка при попытке перезагрузки системы.");
             ShowNotification($"Не удалось запустить перезагрузку: {ex.Message}", NotificationType.Error);
+        }
+    }
+
+    private async Task RefreshTouchStateAsync()
+    {
+        TouchToggleButton.IsEnabled = false;
+        TouchToggleButton.Content = "Сенсор: проверка...";
+        TouchToggleButton.Style = FindResource("BaseButton") as Style;
+
+        var devices = await _touchManager.GetTouchDevicesAsync();
+        if (devices.Count == 0)
+        {
+            TouchToggleButton.Content = "Сенсор не найден";
+            TouchToggleButton.IsEnabled = false;
+            _isTouchEnabled = null;
+            return;
+        }
+
+        _isTouchEnabled = devices.Any(d => d.IsEnabled);
+        UpdateTouchButtonVisual();
+        TouchToggleButton.IsEnabled = true;
+    }
+
+    private async void OnTouchToggleClicked(object sender, RoutedEventArgs e)
+    {
+        TouchToggleButton.IsEnabled = false;
+        TouchToggleButton.Content = "Применение...";
+        try
+        {
+            var targetState = !(_isTouchEnabled ?? true);
+            var ok = await _touchManager.SetTouchEnabledAsync(targetState);
+            if (!ok)
+            {
+                ShowNotification("Сенсор не найден или не удалось применить", NotificationType.Error);
+            }
+            else
+            {
+                _isTouchEnabled = targetState;
+                UpdateTouchButtonVisual();
+                ShowNotification(targetState ? "Сенсор включён" : "Сенсор отключён", NotificationType.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Не удалось переключить сенсор");
+            ShowNotification($"Ошибка переключения сенсора: {ex.Message}", NotificationType.Error);
+        }
+        finally
+        {
+            TouchToggleButton.IsEnabled = true;
+        }
+    }
+
+    private void UpdateTouchButtonVisual()
+    {
+        if (_isTouchEnabled == true)
+        {
+            TouchToggleButton.Content = "Отключить сенсор";
+            TouchToggleButton.Style = FindResource("DangerButton") as Style;
+        }
+        else if (_isTouchEnabled == false)
+        {
+            TouchToggleButton.Content = "Включить сенсор";
+            TouchToggleButton.Style = FindResource("PrimaryButton") as Style;
+        }
+        else
+        {
+            TouchToggleButton.Content = "Сенсор неизвестен";
+            TouchToggleButton.Style = FindResource("BaseButton") as Style;
+            TouchToggleButton.IsEnabled = false;
         }
     }
 
