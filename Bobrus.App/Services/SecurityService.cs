@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Bobrus.App.Services;
@@ -31,6 +32,18 @@ internal sealed class SecurityService
 
     private static async Task<(bool ok, string output)> RunPowerShellAsync(string command, bool requireElevation = false)
     {
+        string? tempLog = null;
+
+        if (requireElevation)
+        {
+            tempLog = Path.Combine(Path.GetTempPath(), $"bobrus-pwsh-{Guid.NewGuid():N}.log");
+            var escapedLogPath = tempLog.Replace("'", "''");
+            command =
+                $"$ErrorActionPreference='Continue'; $logPath='{escapedLogPath}'; $output = & {{ {command} }} *>&1; " +
+                "$output | Out-File -FilePath $logPath -Encoding UTF8; " +
+                "if ($LASTEXITCODE -is [int] -and $LASTEXITCODE -ne 0) { exit $LASTEXITCODE } else { exit 0 }";
+        }
+
         var psi = new ProcessStartInfo
         {
             FileName = "powershell",
@@ -52,7 +65,20 @@ internal sealed class SecurityService
         process.WaitForExit(30000);
 
         string output = string.Empty;
-        if (!requireElevation)
+
+        if (requireElevation && tempLog is not null && File.Exists(tempLog))
+        {
+            output = await File.ReadAllTextAsync(tempLog);
+            try
+            {
+                File.Delete(tempLog);
+            }
+            catch
+            {
+                // ignore cleanup issues
+            }
+        }
+        else if (!requireElevation)
         {
             var stdout = await process.StandardOutput.ReadToEndAsync();
             var stderr = await process.StandardError.ReadToEndAsync();
