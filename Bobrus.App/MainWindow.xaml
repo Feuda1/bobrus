@@ -269,6 +269,94 @@
                                 </WrapPanel>
                             </Grid>
                         </Border>
+
+                        <!-- Logs -->
+                        <Border x:Name="LogsCard" Style="{StaticResource CardBorder}" Padding="18" Margin="0 0 0 0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="Логи"
+                                           FontSize="18"
+                                           FontWeight="SemiBold"
+                                           Margin="0 0 0 14" />
+
+                                <WrapPanel x:Name="LogsActionsPanel" Grid.Row="1" Margin="0" HorizontalAlignment="Stretch">
+                                    <Button Content="config.xml"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="150"
+                                            Margin="0 12 12 12"
+                                            Click="OnOpenConfigLogClicked"
+                                            Tag="лог config cashserver конфиг" />
+                                    <Button Content="cash-server.log"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="170"
+                                            Margin="0 12 12 12"
+                                            Click="OnOpenCashServerLogClicked"
+                                            Tag="лог cash server" />
+                                    <Button Content="OnlineMarking.log"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="190"
+                                            Margin="0 12 12 12"
+                                            Click="OnOpenOnlineMarkingLogClicked"
+                                            Tag="лог online marking маркировка" />
+                                    <Button Content="dualConnector.log"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="190"
+                                            Margin="0 12 12 12"
+                                            Click="OnOpenDualConnectorLogClicked"
+                                            Tag="лог dualconnector терминал оплата" />
+                                    <Button Content="AlcoholMarking.log"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="190"
+                                            Margin="0 12 12 12"
+                                            Click="OnOpenAlcoholLogClicked"
+                                            Tag="лог alcohol marking алкоголь" />
+                                    <Button Content="Sberbank.log"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="170"
+                                            Margin="0 12 12 12"
+                                            Click="OnOpenSberbankLogClicked"
+                                            Tag="лог sberbank оплата" />
+                                    <Button Content="virtual-printer.log"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="190"
+                                            Margin="0 12 12 12"
+                                            Click="OnOpenVirtualPrinterLogClicked"
+                                            Tag="лог виртуальный принтер" />
+                                    <Button Content="Error.log"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="140"
+                                            Margin="0 12 12 12"
+                                            Click="OnOpenErrorLogClicked"
+                                            Tag="лог ошибки error" />
+                                    <Button Content="Transport.log"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="170"
+                                            Margin="0 12 12 12"
+                                            Click="OnOpenTransportLogClicked"
+                                            Tag="лог transport плагин" />
+                                    <Button Content="Delivery.log"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="170"
+                                            Margin="0 12 12 12"
+                                            Click="OnOpenDeliveryLogClicked"
+                                            Tag="лог delivery доставка" />
+                                </WrapPanel>
+                            </Grid>
+                        </Border>
                     </StackPanel>
 
                     <!-- Log panel -->

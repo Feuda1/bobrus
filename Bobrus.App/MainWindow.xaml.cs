@@ -31,6 +31,10 @@ public partial class MainWindow : Window
     private readonly PrintSpoolService _printSpoolService = new();
     private const string IikoFrontExePath = @"C:\Program Files\iiko\iikoRMS\Front.Net\iikoFront.Net.exe";
     private const string IikoCardUrl = "https://iiko.biz/ru-RU/About/DownloadPosInstaller?useRc=False";
+    private readonly string _cashServerBase = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "iiko",
+        "CashServer");
     private Action? _pendingConfirmAction;
     private bool? _isTouchEnabled;
     private List<Button> _actionButtons = new();
@@ -140,6 +144,7 @@ public partial class MainWindow : Window
         UiLogBuffer.OnLog += OnUiLog;
         _actionButtons = ActionsPanel.Children.OfType<Button>()
             .Concat(IikoActionsPanel.Children.OfType<Button>())
+            .Concat(LogsActionsPanel.Children.OfType<Button>())
             .ToList();
         await RefreshTouchStateAsync();
     }
@@ -431,6 +436,7 @@ public partial class MainWindow : Window
             }
             SystemCard.Visibility = Visibility.Visible;
             IikoCard.Visibility = Visibility.Visible;
+            LogsCard.Visibility = Visibility.Visible;
             return;
         }
 
@@ -442,9 +448,11 @@ public partial class MainWindow : Window
 
         var systemVisible = ActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
         var iikoVisible = IikoActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
+        var logsVisible = LogsActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
 
         SystemCard.Visibility = systemVisible ? Visibility.Visible : Visibility.Collapsed;
         IikoCard.Visibility = iikoVisible ? Visibility.Visible : Visibility.Collapsed;
+        LogsCard.Visibility = logsVisible ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private async void OnRestartPrintSpoolerClicked(object sender, RoutedEventArgs e)
@@ -614,6 +622,139 @@ public partial class MainWindow : Window
             button.Content = "Обновить iikoCard";
             button.IsEnabled = true;
         }
+    }
+
+    private async void OnOpenConfigLogClicked(object sender, RoutedEventArgs e)
+    {
+        await OpenLogAsync(Path.Combine(_cashServerBase, "config.xml"), description: "config.xml");
+    }
+
+    private async void OnOpenCashServerLogClicked(object sender, RoutedEventArgs e)
+    {
+        await OpenLogAsync(Path.Combine(_cashServerBase, "Logs", "cash-server.log"), description: "cash-server.log");
+    }
+
+    private async void OnOpenOnlineMarkingLogClicked(object sender, RoutedEventArgs e)
+    {
+        await OpenPatternLogAsync("Resto.Front.Api.OnlineMarkingVerificationPlugin", "OnlineMarking");
+    }
+
+    private async void OnOpenDualConnectorLogClicked(object sender, RoutedEventArgs e)
+    {
+        await OpenPatternLogAsync("Resto.Front.Api.PaymentSystem.DualConnector", "dualConnector");
+    }
+
+    private async void OnOpenAlcoholLogClicked(object sender, RoutedEventArgs e)
+    {
+        await OpenPatternLogAsync("Resto.Front.Api.AlcoholMarkingPlugin", "AlcoholMarking");
+    }
+
+    private async void OnOpenSberbankLogClicked(object sender, RoutedEventArgs e)
+    {
+        await OpenPatternLogAsync("Resto.Front.Api.SberbankPlugin", "Sberbank");
+    }
+
+    private async void OnOpenVirtualPrinterLogClicked(object sender, RoutedEventArgs e)
+    {
+        await OpenLogAsync(Path.Combine(_cashServerBase, "Logs", "virtual-printer.log"), description: "virtual-printer.log");
+    }
+
+    private async void OnOpenErrorLogClicked(object sender, RoutedEventArgs e)
+    {
+        await OpenLogAsync(Path.Combine(_cashServerBase, "Logs", "error.log"), description: "error.log");
+    }
+
+    private async void OnOpenTransportLogClicked(object sender, RoutedEventArgs e)
+    {
+        await OpenLogAsync(Path.Combine(_cashServerBase, "Logs", "plugin-Resto.Front.Api.Transport.V9Preview5.log"), description: "Transport.log");
+    }
+
+    private async void OnOpenDeliveryLogClicked(object sender, RoutedEventArgs e)
+    {
+        await OpenLogAsync(Path.Combine(_cashServerBase, "Logs", "plugin-Resto.Front.Api.Delivery.log"), description: "Delivery.log");
+    }
+
+    private async Task OpenPatternLogAsync(string pattern, string friendlyName)
+    {
+        var dir = Path.Combine(_cashServerBase, "Logs");
+        if (!Directory.Exists(dir))
+        {
+            ShowNotification($"Папка логов не найдена ({dir})", NotificationType.Error);
+            return;
+        }
+
+        var today = DateTime.Today;
+        var files = Directory.EnumerateFiles(dir, "*.log", SearchOption.TopDirectoryOnly)
+            .Where(f => Path.GetFileName(f).Contains(pattern, StringComparison.OrdinalIgnoreCase))
+            .Where(f => File.GetLastWriteTime(f).Date == today)
+            .OrderByDescending(File.GetLastWriteTime)
+            .ToList();
+
+        var file = files.FirstOrDefault();
+        if (file == null)
+        {
+            ShowNotification($"{friendlyName}: файл за сегодня не найден", NotificationType.Warning);
+            return;
+        }
+
+        await OpenInEditorAsync(file, friendlyName);
+    }
+
+    private async Task OpenLogAsync(string path, string description)
+    {
+        var today = DateTime.Today;
+        if (!File.Exists(path) || File.GetLastWriteTime(path).Date != today)
+        {
+            ShowNotification($"{description}: файл за сегодня не найден", NotificationType.Warning);
+            return;
+        }
+
+        await OpenInEditorAsync(path, description);
+    }
+
+    private Task OpenInEditorAsync(string path, string name)
+    {
+        return Task.Run(() =>
+        {
+            var editorPath = GetEditorPath();
+            var psi = new ProcessStartInfo
+            {
+                FileName = editorPath,
+                Arguments = $"\"{path}\"",
+                UseShellExecute = true
+            };
+
+            try
+            {
+                Process.Start(psi);
+                _logger.Information("Открыт лог {Name}: {Path}", name, path);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Не удалось открыть файл {Path}", path);
+                Dispatcher.Invoke(() =>
+                    ShowNotification($"Не удалось открыть {name}: {ex.Message}", NotificationType.Error));
+            }
+        });
+    }
+
+    private string GetEditorPath()
+    {
+        var candidates = new[]
+        {
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Notepad++", "notepad++.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Notepad++", "notepad++.exe")
+        };
+
+        foreach (var candidate in candidates)
+        {
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return "notepad.exe";
     }
 
     private async Task DownloadFileWithProgressAsync(string url, string destinationPath, IProgress<int> progress, CancellationToken token)
