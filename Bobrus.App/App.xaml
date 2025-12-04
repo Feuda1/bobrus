@@ -147,6 +147,53 @@
                 <Setter Property="TextWrapping" Value="Wrap" />
             </Style>
 
+            <!-- Toggle checkbox -->
+            <Style x:Key="ToggleCheckBox" TargetType="CheckBox">
+                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="CheckBox">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border x:Name="Switch"
+                                        Width="38"
+                                        Height="20"
+                                        CornerRadius="10"
+                                        Background="{StaticResource BorderBrushMuted}"
+                                        BorderBrush="{StaticResource BorderBrushMuted}"
+                                        BorderThickness="1"
+                                        Margin="0 0 10 0">
+                                    <Grid>
+                                        <Ellipse x:Name="Thumb"
+                                                 Width="16"
+                                                 Height="16"
+                                                 Fill="{StaticResource TextSecondaryBrush}"
+                                                 HorizontalAlignment="Left"
+                                                 Margin="2" />
+                                    </Grid>
+                                </Border>
+                                <ContentPresenter VerticalAlignment="Center" />
+                            </StackPanel>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Switch" Property="Background" Value="{StaticResource AccentBrush}" />
+                                    <Setter TargetName="Thumb" Property="Fill" Value="{StaticResource TextPrimaryBrush}" />
+                                    <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right" />
+                                    <Setter TargetName="Thumb" Property="Margin" Value="0 2 2 2" />
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Switch" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="Switch" Property="Opacity" Value="0.5" />
+                                    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- ScrollBar style -->
             <Style x:Key="ScrollThumbStyle" TargetType="Thumb">
                 <Setter Property="Background" Value="{StaticResource ScrollbarThumbBrush}" />

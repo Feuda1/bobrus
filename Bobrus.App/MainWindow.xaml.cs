@@ -722,8 +722,22 @@ public partial class MainWindow : Window
 
     private void OnCollectLogsClicked(object sender, RoutedEventArgs e)
     {
-        CollectStartDate.SelectedDate ??= DateTime.Today;
-        CollectEndDate.SelectedDate ??= DateTime.Today;
+        LoadAvailableLogDates();
+        if (CollectStartDate.Items.Count == 0)
+        {
+            CollectStartDate.Items.Add(DateTime.Today.ToShortDateString());
+            CollectEndDate.Items.Add(DateTime.Today.ToShortDateString());
+        }
+
+        if (CollectStartDate.SelectedIndex < 0 && CollectStartDate.Items.Count > 0)
+        {
+            CollectStartDate.SelectedIndex = 0;
+        }
+        if (CollectEndDate.SelectedIndex < 0 && CollectEndDate.Items.Count > 0)
+        {
+            CollectEndDate.SelectedIndex = 0;
+        }
+
         CollectIncludeCash.IsChecked = false;
         CollectIncludeEntities.IsChecked = false;
         LogCollectOverlay.Visibility = Visibility.Visible;
@@ -736,8 +750,8 @@ public partial class MainWindow : Window
 
     private async void OnLogCollectAcceptClicked(object sender, RoutedEventArgs e)
     {
-        var start = CollectStartDate.SelectedDate ?? DateTime.Today;
-        var end = CollectEndDate.SelectedDate ?? DateTime.Today;
+        var start = ParseDateFromCombo(CollectStartDate, DateTime.Today);
+        var end = ParseDateFromCombo(CollectEndDate, DateTime.Today);
         var includeCash = CollectIncludeCash.IsChecked == true;
         var includeEntities = CollectIncludeEntities.IsChecked == true;
 
@@ -863,6 +877,44 @@ public partial class MainWindow : Window
         {
             _logger.Warning(ex, "Не удалось добавить файл {File} в архив", filePath);
         }
+    }
+
+    private void LoadAvailableLogDates()
+    {
+        var logsDir = Path.Combine(_cashServerBase, "Logs");
+        var dates = new HashSet<DateTime>();
+
+        if (Directory.Exists(logsDir))
+        {
+            var files = Directory.EnumerateFiles(logsDir, "*.*", SearchOption.TopDirectoryOnly)
+                .Where(f => f.EndsWith(".log", StringComparison.OrdinalIgnoreCase) ||
+                            f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
+                            f.EndsWith(".7z", StringComparison.OrdinalIgnoreCase));
+            foreach (var file in files)
+            {
+                var dt = File.GetLastWriteTime(file).Date;
+                dates.Add(dt);
+            }
+        }
+
+        var ordered = dates.OrderByDescending(d => d).ToList();
+        CollectStartDate.Items.Clear();
+        CollectEndDate.Items.Clear();
+        foreach (var d in ordered)
+        {
+            var str = d.ToShortDateString();
+            CollectStartDate.Items.Add(str);
+            CollectEndDate.Items.Add(str);
+        }
+    }
+
+    private DateTime ParseDateFromCombo(ComboBox combo, DateTime fallback)
+    {
+        if (combo.SelectedItem is string s && DateTime.TryParse(s, out var dt))
+        {
+            return dt;
+        }
+        return fallback;
     }
 
     private async Task OpenPatternLogAsync(string pattern, string friendlyName)
