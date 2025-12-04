@@ -251,6 +251,12 @@
 
             <!-- Dark combo -->
             <Style x:Key="DarkComboBox" TargetType="ComboBox">
+                <Style.Resources>
+                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#262633" />
+                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#EAEAEA" />
+                    <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#161620" />
+                    <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#EAEAEA" />
+                </Style.Resources>
                 <Setter Property="Background" Value="#161620" />
                 <Setter Property="Foreground" Value="#EAEAEA" />
                 <Setter Property="BorderBrush" Value="{StaticResource BorderBrushMuted}" />
@@ -315,7 +321,8 @@
                                     <Border Background="#161620"
                                             BorderBrush="{StaticResource BorderBrushMuted}"
                                             BorderThickness="1"
-                                            CornerRadius="4">
+                                            CornerRadius="4"
+                                            MinWidth="{Binding ActualWidth, ElementName=ToggleButton}">
                                         <ScrollViewer>
                                             <ItemsPresenter />
                                         </ScrollViewer>

@@ -584,7 +584,8 @@
                                     <ComboBox x:Name="CollectStartDate"
                                               Style="{StaticResource DarkComboBox}"
                                               Width="200"
-                                              IsEditable="False" />
+                                              IsEditable="False"
+                                              SelectionChanged="OnCollectStartChanged" />
                                 </StackPanel>
                                 <TextBlock Text="по"
                                            VerticalAlignment="Center"
@@ -595,7 +596,8 @@
                                     <ComboBox x:Name="CollectEndDate"
                                               Style="{StaticResource DarkComboBox}"
                                               Width="200"
-                                              IsEditable="False" />
+                                              IsEditable="False"
+                                              SelectionChanged="OnCollectEndChanged" />
                                 </StackPanel>
                             </StackPanel>
 

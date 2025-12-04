@@ -752,6 +752,7 @@ public partial class MainWindow : Window
     {
         var start = ParseDateFromCombo(CollectStartDate, DateTime.Today);
         var end = ParseDateFromCombo(CollectEndDate, DateTime.Today);
+        if (end < start) end = start;
         var includeCash = CollectIncludeCash.IsChecked == true;
         var includeEntities = CollectIncludeEntities.IsChecked == true;
 
@@ -931,6 +932,39 @@ public partial class MainWindow : Window
             return dt;
         }
         return fallback;
+    }
+
+    private void OnCollectStartChanged(object sender, SelectionChangedEventArgs e)
+    {
+        ClampEndDate();
+    }
+
+    private void OnCollectEndChanged(object sender, SelectionChangedEventArgs e)
+    {
+        ClampEndDate();
+    }
+
+    private void ClampEndDate()
+    {
+        var start = ParseDateFromCombo(CollectStartDate, DateTime.Today);
+        var end = ParseDateFromCombo(CollectEndDate, DateTime.Today);
+        if (end < start)
+        {
+            // pick the first date >= start from the list, else fallback to start
+            var match = CollectEndDate.Items
+                .OfType<string>()
+                .Select(s => DateTime.TryParse(s, out var d) ? d : (DateTime?)null)
+                .Where(d => d.HasValue && d.Value >= start)
+                .OrderBy(d => d.Value)
+                .FirstOrDefault();
+
+            var target = match ?? start;
+            var idx = CollectEndDate.Items.IndexOf(target.ToShortDateString());
+            if (idx >= 0)
+            {
+                CollectEndDate.SelectedIndex = idx;
+            }
+        }
     }
 
     private async Task OpenPatternLogAsync(string pattern, string friendlyName)
