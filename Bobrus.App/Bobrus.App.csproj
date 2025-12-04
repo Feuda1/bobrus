@@ -11,6 +11,7 @@
     <FileVersion>0.1.0.0</FileVersion>
     <AssemblyVersion>0.1.0.0</AssemblyVersion>
     <NeutralLanguage>ru-RU</NeutralLanguage>
+    <SatelliteResourceLanguages>ru;en</SatelliteResourceLanguages>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
