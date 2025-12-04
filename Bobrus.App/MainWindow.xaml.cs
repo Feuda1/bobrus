@@ -405,20 +405,21 @@ public partial class MainWindow : Window
                 try
                 {
                     ShowNotification("Отключаем защитник...", NotificationType.Warning);
-                    var defOk = await _securityService.DisableDefenderAsync();
-                    _logger.Information("Отключение защитника: {Result}", defOk ? "успех" : "ошибка");
+                    var def = await _securityService.DisableDefenderAsync();
+                    _logger.Information("Отключение защитника: {Result}. Вывод: {Output}", def.Ok ? "успех" : "ошибка", def.Output?.Trim());
 
                     ShowNotification("Отключаем брандмауэр...", NotificationType.Warning);
-                    var fwOk = await _securityService.DisableFirewallAsync();
-                    _logger.Information("Отключение брандмауэра: {Result}", fwOk ? "успех" : "ошибка");
+                    var fw = await _securityService.DisableFirewallAsync();
+                    _logger.Information("Отключение брандмауэра: {Result}. Вывод: {Output}", fw.Ok ? "успех" : "ошибка", fw.Output?.Trim());
 
-                    if (defOk && fwOk)
+                    if (def.Ok && fw.Ok)
                     {
                         ShowNotification("Защитник и брандмауэр отключены", NotificationType.Success);
                     }
                     else
                     {
-                        ShowNotification("Часть действий могла не выполниться. Проверьте вручную.", NotificationType.Error);
+                        var detail = $"{(def.Ok ? "" : "Defender: " + def.Output)} {(fw.Ok ? "" : "Firewall: " + fw.Output)}".Trim();
+                        ShowNotification(string.IsNullOrWhiteSpace(detail) ? "Часть действий не выполнена" : detail, NotificationType.Error);
                     }
                 }
                 catch (Exception ex)

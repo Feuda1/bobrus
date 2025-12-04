@@ -4,27 +4,29 @@ using System.Threading.Tasks;
 
 namespace Bobrus.App.Services;
 
+internal sealed record SecurityActionResult(bool Ok, string Output);
+
 internal sealed class SecurityService
 {
-    public async Task<bool> DisableDefenderAsync()
+    public async Task<SecurityActionResult> DisableDefenderAsync()
     {
         var command = string.Join("; ",
             "Set-MpPreference -DisableRealtimeMonitoring $true -DisableBehaviorMonitoring $true -DisableIOAVProtection $true -DisableScriptScanning $true -SubmitSamplesConsent NeverSend -MAPSReporting 0",
             "Try { sc.exe stop WinDefend | Out-Null } Catch {}",
             "Try { sc.exe config WinDefend start= disabled | Out-Null } Catch {}");
 
-        var (ok, _) = await RunPowerShellAsync(command);
-        return ok;
+        var (ok, output) = await RunPowerShellAsync(command);
+        return new SecurityActionResult(ok, output);
     }
 
-    public async Task<bool> DisableFirewallAsync()
+    public async Task<SecurityActionResult> DisableFirewallAsync()
     {
         var command = string.Join("; ",
             "Try { Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False -ErrorAction SilentlyContinue } Catch {}",
             "netsh advfirewall set allprofiles state off");
 
-        var (ok, _) = await RunPowerShellAsync(command);
-        return ok;
+        var (ok, output) = await RunPowerShellAsync(command);
+        return new SecurityActionResult(ok, output);
     }
 
     private static async Task<(bool ok, string output)> RunPowerShellAsync(string command)
