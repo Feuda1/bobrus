@@ -9,6 +9,7 @@ using System.Windows.Input;
 using Serilog;
 using ILogger = Serilog.ILogger;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Threading;
 using System.Windows.Interop;
@@ -39,6 +40,7 @@ public partial class MainWindow : Window
     private Action? _pendingConfirmAction;
     private bool? _isTouchEnabled;
     private List<Button> _actionButtons = new();
+    private List<DateTime> _availableLogDates = new();
 
     public MainWindow()
     {
@@ -148,6 +150,9 @@ public partial class MainWindow : Window
             .Concat(LogsActionsPanel.Children.OfType<Button>())
             .Concat(FoldersActionsPanel.Children.OfType<Button>())
             .ToList();
+        // подключаем обработчики ввода для комбобоксов дат
+        CollectStartDate.AddHandler(TextBoxBase.TextChangedEvent, new TextChangedEventHandler(OnCollectStartTextChanged));
+        CollectEndDate.AddHandler(TextBoxBase.TextChangedEvent, new TextChangedEventHandler(OnCollectEndTextChanged));
         await RefreshTouchStateAsync();
     }
 
@@ -740,6 +745,8 @@ public partial class MainWindow : Window
 
         CollectIncludeCash.IsChecked = false;
         CollectIncludeEntities.IsChecked = false;
+        UpdateStartItems(string.Empty);
+        UpdateEndItems(string.Empty);
         LogCollectOverlay.Visibility = Visibility.Visible;
     }
 
@@ -917,12 +924,7 @@ public partial class MainWindow : Window
         var ordered = dates.OrderByDescending(d => d).ToList();
         CollectStartDate.Items.Clear();
         CollectEndDate.Items.Clear();
-        foreach (var d in ordered)
-        {
-            var str = d.ToShortDateString();
-            CollectStartDate.Items.Add(str);
-            CollectEndDate.Items.Add(str);
-        }
+        _availableLogDates = ordered;
     }
 
     private DateTime ParseDateFromCombo(ComboBox combo, DateTime fallback)
@@ -965,6 +967,61 @@ public partial class MainWindow : Window
                 CollectEndDate.SelectedIndex = idx;
             }
         }
+    }
+
+    private void UpdateStartItems(string search)
+    {
+        var current = ParseDateFromCombo(CollectStartDate, DateTime.MinValue);
+        CollectStartDate.Items.Clear();
+
+        var filtered = _availableLogDates
+            .Where(d => string.IsNullOrWhiteSpace(search) || d.ToShortDateString().Contains(search, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(d => d);
+
+        foreach (var d in filtered)
+        {
+            CollectStartDate.Items.Add(d.ToShortDateString());
+        }
+
+        if (CollectStartDate.Items.Count > 0)
+        {
+            var idx = CollectStartDate.Items.IndexOf(current.ToShortDateString());
+            CollectStartDate.SelectedIndex = idx >= 0 ? idx : 0;
+        }
+    }
+
+    private void UpdateEndItems(string search)
+    {
+        var start = ParseDateFromCombo(CollectStartDate, DateTime.MinValue);
+        var current = ParseDateFromCombo(CollectEndDate, DateTime.MinValue);
+        CollectEndDate.Items.Clear();
+
+        var filtered = _availableLogDates
+            .Where(d => d >= start)
+            .Where(d => string.IsNullOrWhiteSpace(search) || d.ToShortDateString().Contains(search, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(d => d);
+
+        foreach (var d in filtered)
+        {
+            CollectEndDate.Items.Add(d.ToShortDateString());
+        }
+
+        if (CollectEndDate.Items.Count > 0)
+        {
+            var idx = CollectEndDate.Items.IndexOf(current.ToShortDateString());
+            CollectEndDate.SelectedIndex = idx >= 0 ? idx : 0;
+        }
+    }
+
+    private void OnCollectStartTextChanged(object sender, TextChangedEventArgs e)
+    {
+        UpdateStartItems(CollectStartDate.Text);
+        UpdateEndItems(CollectEndDate.Text);
+    }
+
+    private void OnCollectEndTextChanged(object sender, TextChangedEventArgs e)
+    {
+        UpdateEndItems(CollectEndDate.Text);
     }
 
     private async Task OpenPatternLogAsync(string pattern, string friendlyName)
