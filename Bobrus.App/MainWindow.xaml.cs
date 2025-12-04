@@ -15,6 +15,7 @@ using System.Windows.Interop;
 using Bobrus.App.Services;
 using Serilog.Events;
 using System.Text.RegularExpressions;
+using System.IO.Compression;
 
 namespace Bobrus.App;
 
@@ -717,6 +718,137 @@ public partial class MainWindow : Window
     private async void OnOpenUtmTransportLogClicked(object sender, RoutedEventArgs e)
     {
         await OpenLogAsync(@"C:\UTM\transporter\l\transport_info.log", description: "UTM transport_info.log");
+    }
+
+    private async void OnCollectLogsClicked(object sender, RoutedEventArgs e)
+    {
+        var button = (Button)sender;
+        button.IsEnabled = false;
+        button.Content = "Сбор...";
+
+        try
+        {
+            var includeCashServer = MessageBox.Show(
+                "Добавить всю папку CashServer?",
+                "Сбор логов",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question) == MessageBoxResult.Yes;
+
+            var includeEntities = MessageBox.Show(
+                "Добавить базу EntitiesStorage?",
+                "Сбор логов",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question) == MessageBoxResult.Yes;
+
+            var zipName = $"BobrusLogs_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
+            var zipPath = Path.Combine(Path.GetTempPath(), zipName);
+
+            await Task.Run(() => CreateLogsArchive(zipPath, includeCashServer, includeEntities));
+
+            ShowNotification($"Архив логов готов: {zipPath}", NotificationType.Success);
+            _logger.Information("Сбор логов завершён: {Path}", zipPath);
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"/select,\"{zipPath}\"",
+                    UseShellExecute = true
+                });
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Ошибка сбора логов");
+            ShowNotification($"Ошибка сбора логов: {ex.Message}", NotificationType.Error);
+        }
+        finally
+        {
+            button.Content = "Собрать логи";
+            button.IsEnabled = true;
+        }
+    }
+
+    private void CreateLogsArchive(string zipPath, bool includeCashServer, bool includeEntities)
+    {
+        var logsDir = Path.Combine(_cashServerBase, "Logs");
+        var cashRoot = _cashServerBase;
+        var entitiesDir = Path.Combine(_cashServerBase, "EntitiesStorage");
+
+        if (File.Exists(zipPath))
+        {
+            File.Delete(zipPath);
+        }
+
+        using var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create);
+
+        // *.log и архивы логов из Logs
+        if (Directory.Exists(logsDir))
+        {
+            var logFiles = Directory.EnumerateFiles(logsDir, "*.log", SearchOption.TopDirectoryOnly);
+            foreach (var file in logFiles)
+            {
+                AddFileToArchive(archive, file, Path.Combine("Logs", Path.GetFileName(file)));
+            }
+
+            var archiveFiles = Directory.EnumerateFiles(logsDir, "*.*", SearchOption.TopDirectoryOnly)
+                .Where(f => f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
+                            f.EndsWith(".7z", StringComparison.OrdinalIgnoreCase));
+            foreach (var file in archiveFiles)
+            {
+                AddFileToArchive(archive, file, Path.Combine("Logs", Path.GetFileName(file)));
+            }
+        }
+
+        // *.xml из корня CashServer
+        if (Directory.Exists(cashRoot))
+        {
+            var xmlFiles = Directory.EnumerateFiles(cashRoot, "*.xml", SearchOption.TopDirectoryOnly);
+            foreach (var file in xmlFiles)
+            {
+                AddFileToArchive(archive, file, Path.Combine("Config", Path.GetFileName(file)));
+            }
+        }
+
+        // CashServer (опционально)
+        if (includeCashServer && Directory.Exists(cashRoot))
+        {
+            AddDirectoryToArchive(archive, cashRoot, "CashServer");
+        }
+
+        // EntitiesStorage (опционально)
+        if (includeEntities && Directory.Exists(entitiesDir))
+        {
+            AddDirectoryToArchive(archive, entitiesDir, "EntitiesStorage");
+        }
+    }
+
+    private void AddDirectoryToArchive(ZipArchive archive, string dirPath, string entryRoot)
+    {
+        var files = Directory.EnumerateFiles(dirPath, "*.*", SearchOption.AllDirectories);
+        foreach (var file in files)
+        {
+            var relative = Path.GetRelativePath(dirPath, file);
+            var entryName = Path.Combine(entryRoot, relative).Replace('\\', '/');
+            AddFileToArchive(archive, file, entryName);
+        }
+    }
+
+    private void AddFileToArchive(ZipArchive archive, string filePath, string entryName)
+    {
+        try
+        {
+            archive.CreateEntryFromFile(filePath, entryName);
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Не удалось добавить файл {File} в архив", filePath);
+        }
     }
 
     private async Task OpenPatternLogAsync(string pattern, string friendlyName)
