@@ -552,12 +552,12 @@
               Grid.RowSpan="3"
               Background="#88000000"
               Visibility="Collapsed">
-            <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Width="620">
+            <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Width="620" MinHeight="360">
                 <Border Background="{StaticResource PanelBrush}"
                         BorderBrush="{StaticResource BorderBrushMuted}"
                         BorderThickness="1"
                         CornerRadius="10"
-                        Padding="18">
+                        Padding="18 18 18 30">
                     <StackPanel>
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -578,13 +578,13 @@
 
                         <StackPanel Margin="0 12 0 0">
                             <TextBlock Text="Выберите период" Foreground="{StaticResource TextSecondaryBrush}" />
-                            <StackPanel Orientation="Horizontal" Margin="0 6 0 10">
+                            <StackPanel Orientation="Horizontal" Margin="0 6 0 14">
                                 <StackPanel Width="200">
                                     <TextBlock Text="С начала" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" />
                                     <ComboBox x:Name="CollectStartDate"
                                               Style="{StaticResource DarkComboBox}"
                                               Width="200"
-                                              IsReadOnly="True" />
+                                              IsEditable="False" />
                                 </StackPanel>
                                 <TextBlock Text="по"
                                            VerticalAlignment="Center"
@@ -595,12 +595,12 @@
                                     <ComboBox x:Name="CollectEndDate"
                                               Style="{StaticResource DarkComboBox}"
                                               Width="200"
-                                              IsReadOnly="True" />
+                                              IsEditable="False" />
                                 </StackPanel>
                             </StackPanel>
 
                             <TextBlock Text="Дополнительно" Foreground="{StaticResource TextSecondaryBrush}" Margin="0 4 0 6" />
-                            <StackPanel Orientation="Vertical">
+                            <StackPanel Orientation="Vertical" Margin="0 0 0 12">
                                 <CheckBox x:Name="CollectIncludeCash"
                                           Content="Добавить всю папку CashServer"
                                           Foreground="{StaticResource TextPrimaryBrush}"

@@ -256,6 +256,7 @@
                 <Setter Property="BorderBrush" Value="{StaticResource BorderBrushMuted}" />
                 <Setter Property="BorderThickness" Value="1" />
                 <Setter Property="Padding" Value="4 2" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
                 <Setter Property="ItemContainerStyle">
                     <Setter.Value>
                         <Style TargetType="ComboBoxItem">
@@ -267,10 +268,26 @@
                                 <Trigger Property="IsHighlighted" Value="True">
                                     <Setter Property="Background" Value="{StaticResource BorderBrushMuted}" />
                                 </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                                    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+                                </Trigger>
                             </Style.Triggers>
                         </Style>
                     </Setter.Value>
                 </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+                        <Setter Property="BorderBrush" Value="{StaticResource BorderBrushMuted}" />
+                    </Trigger>
+                </Style.Triggers>
+                <Style.Resources>
+                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#2B2B35" />
+                    <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#2B2B35" />
+                    <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#F0F2F8" />
+                </Style.Resources>
             </Style>
         </ResourceDictionary>
     </Application.Resources>
