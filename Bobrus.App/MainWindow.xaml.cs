@@ -560,14 +560,13 @@ public partial class MainWindow : Window
         try
         {
             _logger.Information("Обновление iikoCard: загрузка из {Url}", IikoCardUrl);
-            using var response = await _httpClient.GetAsync(IikoCardUrl, HttpCompletionOption.ResponseHeadersRead);
-            response.EnsureSuccessStatusCode();
-
-            await using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
-            await using (var stream = await response.Content.ReadAsStreamAsync())
+            var progress = new Progress<int>(p =>
             {
-                await stream.CopyToAsync(fs);
-            }
+                button.Content = $"Загрузка {p}%";
+                _logger.Information("Обновление iikoCard: загрузка {Percent}% завершена", p);
+            });
+
+            await DownloadFileWithProgressAsync(IikoCardUrl, tempPath, progress, CancellationToken.None);
 
             button.Content = "Установка...";
             _logger.Information("Обновление iikoCard: загрузка завершена, запускаем установку {Path}", tempPath);
@@ -590,6 +589,17 @@ public partial class MainWindow : Window
 
             ShowNotification("Установка iikoCard запущена", NotificationType.Success);
             _logger.Information("Обновление iikoCard: процесс установки PID {Pid}", proc.Id);
+
+            await Task.Run(() => proc.WaitForExit());
+            _logger.Information("Обновление iikoCard: установка завершена с кодом {Code}", proc.ExitCode);
+            if (proc.ExitCode == 0)
+            {
+                ShowNotification("iikoCard установлена", NotificationType.Success);
+            }
+            else
+            {
+                ShowNotification($"Установка iikoCard завершилась с кодом {proc.ExitCode}", NotificationType.Warning);
+            }
         }
         catch (Exception ex)
         {
@@ -601,6 +611,45 @@ public partial class MainWindow : Window
             button.Content = "Обновить iikoCard";
             button.IsEnabled = true;
         }
+    }
+
+    private async Task DownloadFileWithProgressAsync(string url, string destinationPath, IProgress<int> progress, CancellationToken token)
+    {
+        using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
+        response.EnsureSuccessStatusCode();
+
+        var total = response.Content.Headers.ContentLength ?? -1L;
+        var canReport = total > 0 && progress != null;
+        const int bufferSize = 81920;
+
+        await using var contentStream = await response.Content.ReadAsStreamAsync(token);
+        await using var fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize, useAsync: true);
+
+        var buffer = new byte[bufferSize];
+        long totalRead = 0;
+        int lastPercent = 0;
+
+        while (true)
+        {
+            var read = await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length), token);
+            if (read == 0)
+                break;
+
+            await fileStream.WriteAsync(buffer.AsMemory(0, read), token);
+            totalRead += read;
+
+            if (canReport)
+            {
+                var percent = (int)Math.Clamp((totalRead * 100L) / total, 0, 100);
+                if (percent != lastPercent && (percent % 5 == 0 || percent == 100))
+                {
+                    lastPercent = percent;
+                    progress?.Report(percent);
+                }
+            }
+        }
+
+        progress?.Report(100);
     }
 
     private Task<int> KillIikoFrontAsync()
