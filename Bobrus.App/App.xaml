@@ -18,8 +18,8 @@
             <SolidColorBrush x:Key="DangerBrush" Color="#C0392B" />
             <SolidColorBrush x:Key="DangerHoverBrush" Color="#A43126" />
             <SolidColorBrush x:Key="TopBarBrush" Color="#16171F" />
-            <SolidColorBrush x:Key="ScrollbarTrackBrush" Color="#14141A" />
-            <SolidColorBrush x:Key="ScrollbarThumbBrush" Color="#2C2C36" />
+            <SolidColorBrush x:Key="ScrollbarTrackBrush" Color="#0F0F14" />
+            <SolidColorBrush x:Key="ScrollbarThumbBrush" Color="#2B2B35" />
             <SolidColorBrush x:Key="ScrollbarThumbHoverBrush" Color="#3A3A46" />
             <SolidColorBrush x:Key="ScrollbarThumbPressedBrush" Color="#4A4A58" />
 
@@ -148,12 +148,33 @@
             </Style>
 
             <!-- ScrollBar style -->
+            <Style x:Key="ScrollThumbStyle" TargetType="Thumb">
+                <Setter Property="Background" Value="{StaticResource ScrollbarThumbBrush}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Thumb">
+                            <Border Background="{TemplateBinding Background}"
+                                    CornerRadius="4"
+                                    Margin="0 2" />
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{StaticResource ScrollbarThumbHoverBrush}" />
+                    </Trigger>
+                    <Trigger Property="IsDragging" Value="True">
+                        <Setter Property="Background" Value="{StaticResource ScrollbarThumbPressedBrush}" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
             <Style TargetType="ScrollBar">
-                <Setter Property="Width" Value="10" />
+                <Setter Property="Width" Value="8" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ScrollBar">
-                            <Grid Background="Transparent">
+                            <Grid Background="Transparent" Margin="0">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
@@ -164,7 +185,7 @@
                                        Focusable="False">
                                     <Track.Thumb>
                                         <Thumb x:Name="Thumb"
-                                               Background="{StaticResource ScrollbarThumbBrush}" />
+                                               Style="{StaticResource ScrollThumbStyle}" />
                                     </Track.Thumb>
                                 </Track>
                             </Grid>
