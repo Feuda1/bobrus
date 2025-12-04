@@ -276,7 +276,7 @@
                         </Border>
 
                         <!-- Logs -->
-                        <Border x:Name="LogsCard" Style="{StaticResource CardBorder}" Padding="18">
+                        <Border x:Name="LogsCard" Style="{StaticResource CardBorder}" Padding="18" Margin="0 0 0 14">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -366,6 +366,59 @@
                                             Margin="0 12 12 12"
                                             Click="OnOpenMessagesLogClicked"
                                             Tag="лог messages сообщения" />
+                                </WrapPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Folders -->
+                        <Border x:Name="FoldersCard" Style="{StaticResource CardBorder}" Padding="18">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="Папки"
+                                           FontSize="18"
+                                           FontWeight="SemiBold"
+                                           Margin="0 0 0 14" />
+
+                                <WrapPanel x:Name="FoldersActionsPanel" Grid.Row="1" Margin="0" HorizontalAlignment="Stretch">
+                                    <Button Content="Logs"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="170"
+                                            Margin="0 12 12 12"
+                                            Click="OnOpenFolderLogsClicked"
+                                            Tag="папка логи cashserver logs" />
+                                    <Button Content="EntitiesStorage"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="190"
+                                            Margin="0 12 12 12"
+                                            Click="OnOpenFolderEntitiesClicked"
+                                            Tag="папка entities storage" />
+                                    <Button Content="CashServer"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="170"
+                                            Margin="0 12 12 12"
+                                            Click="OnOpenFolderCashServerClicked"
+                                            Tag="папка cashserver" />
+                                    <Button Content="Plugins"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="170"
+                                            Margin="0 12 12 12"
+                                            Click="OnOpenFolderPluginsClicked"
+                                            Tag="папка front plugins" />
+                                    <Button Content="UTM"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="140"
+                                            Margin="0 12 12 12"
+                                            Click="OnOpenFolderUtmClicked"
+                                            Tag="папка utm" />
                                 </WrapPanel>
                             </Grid>
                         </Border>

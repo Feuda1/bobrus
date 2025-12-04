@@ -145,6 +145,7 @@ public partial class MainWindow : Window
         _actionButtons = ActionsPanel.Children.OfType<Button>()
             .Concat(IikoActionsPanel.Children.OfType<Button>())
             .Concat(LogsActionsPanel.Children.OfType<Button>())
+            .Concat(FoldersActionsPanel.Children.OfType<Button>())
             .ToList();
         await RefreshTouchStateAsync();
     }
@@ -437,6 +438,7 @@ public partial class MainWindow : Window
             SystemCard.Visibility = Visibility.Visible;
             IikoCard.Visibility = Visibility.Visible;
             LogsCard.Visibility = Visibility.Visible;
+            FoldersCard.Visibility = Visibility.Visible;
             return;
         }
 
@@ -449,10 +451,12 @@ public partial class MainWindow : Window
         var systemVisible = ActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
         var iikoVisible = IikoActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
         var logsVisible = LogsActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
+        var foldersVisible = FoldersActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
 
         SystemCard.Visibility = systemVisible ? Visibility.Visible : Visibility.Collapsed;
         IikoCard.Visibility = iikoVisible ? Visibility.Visible : Visibility.Collapsed;
         LogsCard.Visibility = logsVisible ? Visibility.Visible : Visibility.Collapsed;
+        FoldersCard.Visibility = foldersVisible ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private async void OnRestartPrintSpoolerClicked(object sender, RoutedEventArgs e)
@@ -679,6 +683,32 @@ public partial class MainWindow : Window
         await OpenLogAsync(Path.Combine(_cashServerBase, "Logs", "messages.log"), description: "messages.log");
     }
 
+    private async void OnOpenFolderLogsClicked(object sender, RoutedEventArgs e)
+    {
+        await OpenFolderAsync(Path.Combine(_cashServerBase, "Logs"), "Logs");
+    }
+
+    private async void OnOpenFolderEntitiesClicked(object sender, RoutedEventArgs e)
+    {
+        await OpenFolderAsync(Path.Combine(_cashServerBase, "EntitiesStorage"), "EntitiesStorage");
+    }
+
+    private async void OnOpenFolderCashServerClicked(object sender, RoutedEventArgs e)
+    {
+        await OpenFolderAsync(_cashServerBase, "CashServer");
+    }
+
+    private async void OnOpenFolderPluginsClicked(object sender, RoutedEventArgs e)
+    {
+        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "iiko", "iikoRMS", "Front.Net", "Plugins");
+        await OpenFolderAsync(path, "Plugins");
+    }
+
+    private async void OnOpenFolderUtmClicked(object sender, RoutedEventArgs e)
+    {
+        await OpenFolderAsync(@"C:\UTM", "UTM");
+    }
+
     private async Task OpenPatternLogAsync(string pattern, string friendlyName)
     {
         var dir = Path.Combine(_cashServerBase, "Logs");
@@ -760,6 +790,37 @@ public partial class MainWindow : Window
         }
 
         return "notepad.exe";
+    }
+
+    private Task OpenFolderAsync(string path, string name)
+    {
+        return Task.Run(() =>
+        {
+            if (!Directory.Exists(path))
+            {
+                Dispatcher.Invoke(() => ShowNotification($"{name}: папка не найдена ({path})", NotificationType.Warning));
+                _logger.Warning("{Name}: папка не найдена {Path}", name, path);
+                return;
+            }
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"\"{path}\"",
+                UseShellExecute = true
+            };
+
+            try
+            {
+                Process.Start(psi);
+                _logger.Information("Открыта папка {Name}: {Path}", name, path);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Не удалось открыть папку {Path}", path);
+                Dispatcher.Invoke(() => ShowNotification($"Не удалось открыть {name}: {ex.Message}", NotificationType.Error));
+            }
+        });
     }
 
     private async Task DownloadFileWithProgressAsync(string url, string destinationPath, IProgress<int> progress, CancellationToken token)
