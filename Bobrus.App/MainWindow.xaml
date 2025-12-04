@@ -366,6 +366,13 @@
                                             Margin="0 12 12 12"
                                             Click="OnOpenMessagesLogClicked"
                                             Tag="лог messages сообщения" />
+                                    <Button Content="UTM transport_info.log"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="210"
+                                            Margin="0 12 12 12"
+                                            Click="OnOpenUtmTransportLogClicked"
+                                            Tag="лог utm transport" />
                                 </WrapPanel>
                             </Grid>
                         </Border>
@@ -419,13 +426,6 @@
                                             Margin="0 12 12 12"
                                             Click="OnOpenFolderUtmClicked"
                                             Tag="папка utm" />
-                                    <Button Content="UTM transport_info.log"
-                                            Style="{StaticResource BaseButton}"
-                                            Height="44"
-                                            MinWidth="210"
-                                            Margin="0 12 12 12"
-                                            Click="OnOpenUtmTransportLogClicked"
-                                            Tag="лог utm transport" />
                                 </WrapPanel>
                             </Grid>
                         </Border>
