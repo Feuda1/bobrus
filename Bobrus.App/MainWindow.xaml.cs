@@ -220,18 +220,14 @@ public partial class MainWindow : Window
             {
                 Foreground = FindResource("TextSecondaryBrush") as Brush ?? Brushes.Gray
             };
-            var levelRun = new System.Windows.Documents.Run($"{logEvent.Level.ToString().ToUpper(),-6} ")
-            {
-                Foreground = GetBrushForLevel(logEvent.Level),
-                FontWeight = FontWeights.SemiBold
-            };
+
             var messageRun = new System.Windows.Documents.Run(logEvent.RenderMessage())
             {
-                Foreground = FindResource("TextPrimaryBrush") as Brush ?? Brushes.White
+                Foreground = GetBrushForLevel(logEvent.Level),
+                FontWeight = logEvent.Level >= LogEventLevel.Warning ? FontWeights.SemiBold : FontWeights.Normal
             };
 
             paragraph.Inlines.Add(timeRun);
-            paragraph.Inlines.Add(levelRun);
             paragraph.Inlines.Add(messageRun);
             LogRichTextBox.Document.Blocks.Add(paragraph);
             LogRichTextBox.ScrollToEnd();
@@ -242,8 +238,9 @@ public partial class MainWindow : Window
         level switch
         {
             LogEventLevel.Error or LogEventLevel.Fatal => FindResource("DangerBrush") as Brush ?? Brushes.Red,
-            LogEventLevel.Warning => FindResource("AccentBlueBrush") as Brush ?? Brushes.Orange,
-            LogEventLevel.Debug => FindResource("TextSecondaryBrush") as Brush ?? Brushes.Gray,
+            LogEventLevel.Warning => FindResource("AccentBrush") as Brush ?? Brushes.Orange,
+            LogEventLevel.Information => FindResource("AccentBlueBrush") as Brush ?? Brushes.DeepSkyBlue,
+            LogEventLevel.Debug or LogEventLevel.Verbose => FindResource("TextSecondaryBrush") as Brush ?? Brushes.Gray,
             _ => FindResource("TextPrimaryBrush") as Brush ?? Brushes.White
         };
 
