@@ -429,16 +429,16 @@ public partial class MainWindow : Window
         try
         {
             _logger.Information("Настройка TLS 1.2: старт");
-            var ok = await _tlsConfigurator.EnableTls12Async();
-            if (ok)
+            var result = await _tlsConfigurator.EnableTls12Async();
+            if (result.Ok)
             {
                 ShowNotification("TLS 1.2 включён для клиента и сервера", NotificationType.Success);
                 _logger.Information("Настройка TLS 1.2: завершено успешно");
             }
             else
             {
-                ShowNotification("TLS 1.2: не удалось применить настройки", NotificationType.Error);
-                _logger.Warning("Настройка TLS 1.2: ошибка применения");
+                ShowNotification($"TLS 1.2: не удалось применить ({result.Message})", NotificationType.Error);
+                _logger.Warning("Настройка TLS 1.2: ошибка применения. Детали: {Detail}", result.Message);
             }
         }
         catch (Exception ex)
