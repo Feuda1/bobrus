@@ -12,6 +12,7 @@ using System.Windows.Threading;
 using System.Windows.Interop;
 using Bobrus.App.Services;
 using Serilog.Events;
+using System.Text.RegularExpressions;
 
 namespace Bobrus.App;
 
@@ -221,28 +222,68 @@ public partial class MainWindow : Window
                 Foreground = FindResource("TextSecondaryBrush") as Brush ?? Brushes.Gray
             };
 
-            var messageRun = new System.Windows.Documents.Run(logEvent.RenderMessage())
-            {
-                Foreground = GetBrushForLevel(logEvent.Level),
-                FontWeight = logEvent.Level >= LogEventLevel.Warning ? FontWeights.SemiBold : FontWeights.Normal
-            };
-
             paragraph.Inlines.Add(timeRun);
-            paragraph.Inlines.Add(messageRun);
+            foreach (var inline in BuildMessageInlines(logEvent))
+            {
+                paragraph.Inlines.Add(inline);
+            }
             LogRichTextBox.Document.Blocks.Add(paragraph);
             LogRichTextBox.ScrollToEnd();
         }, DispatcherPriority.Background);
     }
 
-    private Brush GetBrushForLevel(LogEventLevel level) =>
-        level switch
+    private IEnumerable<System.Windows.Documents.Inline> BuildMessageInlines(LogEvent logEvent)
+    {
+        var danger = FindResource("DangerBrush") as Brush ?? Brushes.Red;
+        var accentOrange = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E7A04F"));
+        var accentGreen = FindResource("AccentBrush") as Brush ?? Brushes.LimeGreen;
+        var info = FindResource("TextPrimaryBrush") as Brush ?? Brushes.White;
+        var secondary = FindResource("TextSecondaryBrush") as Brush ?? Brushes.Gray;
+
+        var message = logEvent.RenderMessage();
+        if (logEvent.Level == LogEventLevel.Error || logEvent.Level == LogEventLevel.Fatal)
         {
-            LogEventLevel.Error or LogEventLevel.Fatal => FindResource("DangerBrush") as Brush ?? Brushes.Red,
-            LogEventLevel.Warning => FindResource("AccentBrush") as Brush ?? Brushes.Orange,
-            LogEventLevel.Information => FindResource("AccentBlueBrush") as Brush ?? Brushes.DeepSkyBlue,
-            LogEventLevel.Debug or LogEventLevel.Verbose => FindResource("TextSecondaryBrush") as Brush ?? Brushes.Gray,
-            _ => FindResource("TextPrimaryBrush") as Brush ?? Brushes.White
-        };
+            yield return new System.Windows.Documents.Run(message)
+            {
+                Foreground = danger,
+                FontWeight = FontWeights.SemiBold
+            };
+            yield break;
+        }
+
+        var baseBrush = accentOrange;
+        var pattern = new Regex(@"\d[\d\s]*байт|начало", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        var lastIndex = 0;
+        foreach (Match match in pattern.Matches(message))
+        {
+            if (match.Index > lastIndex)
+            {
+                var text = message.Substring(lastIndex, match.Index - lastIndex);
+                yield return new System.Windows.Documents.Run(text)
+                {
+                    Foreground = baseBrush
+                };
+            }
+
+            var highlightText = match.Value;
+            yield return new System.Windows.Documents.Run(highlightText)
+            {
+                Foreground = accentGreen,
+                FontWeight = FontWeights.SemiBold
+            };
+
+            lastIndex = match.Index + match.Length;
+        }
+
+        if (lastIndex < message.Length)
+        {
+            var tail = message.Substring(lastIndex);
+            yield return new System.Windows.Documents.Run(tail)
+            {
+                Foreground = baseBrush
+            };
+        }
+    }
 
     private async void OnRestartTouchClicked(object sender, RoutedEventArgs e)
     {
