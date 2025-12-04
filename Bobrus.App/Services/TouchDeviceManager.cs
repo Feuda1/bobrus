@@ -63,6 +63,29 @@ internal sealed class TouchDeviceManager
         return true;
     }
 
+    public async Task<bool> RestartTouchAsync()
+    {
+        var devices = await GetTouchDevicesAsync();
+        if (devices.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (var device in devices)
+        {
+            await RunPnpUtilAsync(false, device.InstanceId);
+        }
+
+        await Task.Delay(500);
+
+        foreach (var device in devices)
+        {
+            await RunPnpUtilAsync(true, device.InstanceId);
+        }
+
+        return true;
+    }
+
     private static bool IsTouchName(string name)
     {
         var lower = name.ToLowerInvariant();

@@ -232,6 +232,36 @@ public partial class MainWindow : Window
             _ => FindResource("TextPrimaryBrush") as Brush ?? Brushes.White
         };
 
+    private async void OnRestartTouchClicked(object sender, RoutedEventArgs e)
+    {
+        var button = (Button)sender;
+        button.IsEnabled = false;
+        button.Content = "Перезапуск...";
+        try
+        {
+            var ok = await _touchManager.RestartTouchAsync();
+            if (!ok)
+            {
+                ShowNotification("Сенсор не найден для перезапуска", NotificationType.Error);
+            }
+            else
+            {
+                ShowNotification("Сенсор перезапущен", NotificationType.Success);
+                await RefreshTouchStateAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Не удалось перезапустить сенсор");
+            ShowNotification($"Ошибка перезапуска сенсора: {ex.Message}", NotificationType.Error);
+        }
+        finally
+        {
+            button.Content = "Перезапуск сенсора";
+            button.IsEnabled = true;
+        }
+    }
+
     private void UpdateTouchButtonVisual()
     {
         if (_isTouchEnabled == true)
