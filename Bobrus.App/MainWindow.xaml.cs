@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private readonly CleaningService _cleaningService = new();
     private readonly ComPortManager _comPortManager = new();
     private readonly SecurityService _securityService = new();
+    private readonly TlsConfigurator _tlsConfigurator = new();
     private readonly PrintSpoolService _printSpoolService = new();
     private Action? _pendingConfirmAction;
     private bool? _isTouchEnabled;
@@ -416,6 +417,38 @@ public partial class MainWindow : Window
         finally
         {
             button.Content = "Перезапуск и очистка дисп. печати";
+            button.IsEnabled = true;
+        }
+    }
+
+    private async void OnConfigureTlsClicked(object sender, RoutedEventArgs e)
+    {
+        var button = (Button)sender;
+        button.IsEnabled = false;
+        button.Content = "Настройка...";
+        try
+        {
+            _logger.Information("Настройка TLS 1.2: старт");
+            var ok = await _tlsConfigurator.EnableTls12Async();
+            if (ok)
+            {
+                ShowNotification("TLS 1.2 включён для клиента и сервера", NotificationType.Success);
+                _logger.Information("Настройка TLS 1.2: завершено успешно");
+            }
+            else
+            {
+                ShowNotification("TLS 1.2: не удалось применить настройки", NotificationType.Error);
+                _logger.Warning("Настройка TLS 1.2: ошибка применения");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Ошибка настройки TLS 1.2");
+            ShowNotification($"Ошибка TLS 1.2: {ex.Message}", NotificationType.Error);
+        }
+        finally
+        {
+            button.Content = "Настройка TLS 1.2";
             button.IsEnabled = true;
         }
     }
