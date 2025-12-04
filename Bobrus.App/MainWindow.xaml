@@ -243,7 +243,7 @@
                                     Click="OnCleanupClicked"
                                     Tag="очистка temp кеш cache браузер" />
                             <Button Content="Отключить защиту и брандмауэр"
-                                    Style="{StaticResource DangerButton}"
+                                    Style="{StaticResource BaseButton}"
                                     Height="44"
                                     MinWidth="220"
                                     Margin="0 12 12 12"

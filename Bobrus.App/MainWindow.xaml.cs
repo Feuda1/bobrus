@@ -55,7 +55,7 @@ public partial class MainWindow : Window
     private void OnRebootClicked(object sender, RoutedEventArgs e)
     {
         ShowConfirm("Перезагрузка",
-            "Перезагрузить компьютер сейчас? Все несохраненные данные будут потеряны.",
+            "Вы уверены, что хотите перезагрузить компьютер?",
             StartReboot);
     }
 
@@ -493,7 +493,7 @@ public partial class MainWindow : Window
     {
         ShowConfirm(
             "Отключение защитника и брандмауэра",
-            "Отключить Windows Defender и брандмауэр? Это снижает защиту системы. Действие требует админ-прав.",
+            "Вы уверены, что хотите отключить Windows Defender и брандмауэр? (требуются админ-права)",
             async () =>
             {
                 try
