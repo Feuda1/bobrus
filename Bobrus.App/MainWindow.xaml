@@ -115,7 +115,7 @@
                     BorderBrush="{StaticResource BorderBrushMuted}"
                     BorderThickness="1"
                     CornerRadius="10"
-                    Padding="12 10">
+                    Padding="10 8">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -126,11 +126,18 @@
                               StrokeThickness="1.4"
                               Data="M10,14 A4,4 0 1 1 14,10 L18,14" />
                     </Viewbox>
-                    <TextBlock Grid.Column="1"
-                               Margin="10 0 0 0"
-                               VerticalAlignment="Center"
-                               Text="Поиск функций (Ctrl+K)"
-                               Foreground="{StaticResource TextSecondaryBrush}" />
+                    <TextBox x:Name="SearchBox"
+                             Grid.Column="1"
+                             Margin="10 0 0 0"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Foreground="{StaticResource TextPrimaryBrush}"
+                             CaretBrush="{StaticResource AccentBrush}"
+                             FontSize="14"
+                             TextChanged="OnSearchTextChanged"
+                             KeyDown="OnSearchKeyDown"
+                             Tag="Поиск функций (Ctrl+K)"
+                             />
                 </Grid>
             </Border>
         </Grid>
@@ -183,56 +190,64 @@
                                        FontWeight="SemiBold"
                                        Margin="0 0 0 14" />
 
-                        <WrapPanel Grid.Row="1" Margin="0" HorizontalAlignment="Stretch">
+                        <WrapPanel x:Name="ActionsPanel" Grid.Row="1" Margin="0" HorizontalAlignment="Stretch">
                             <Button Content="Перезагрузить ПК"
                                     Style="{StaticResource BaseButton}"
                                     Height="44"
                                     MinWidth="170"
                                     Margin="0 12 12 12"
-                                    Click="OnRebootClicked" />
+                                    Click="OnRebootClicked"
+                                    Tag="reboot перезагрузка рестарт" />
                             <Button x:Name="TouchToggleButton"
                                     Content="Сенсор: проверка..."
                                     Style="{StaticResource BaseButton}"
                                     Height="44"
                                     MinWidth="170"
                                     Margin="0 12 12 12"
-                                    Click="OnTouchToggleClicked" />
+                                    Click="OnTouchToggleClicked"
+                                    Tag="сенсор touch включить отключить" />
                             <Button Content="Перезапуск сенсора"
                                     Style="{StaticResource BaseButton}"
                                     Height="44"
                                     MinWidth="170"
                                     Margin="0 12 12 12"
-                                    Click="OnRestartTouchClicked" />
+                                    Click="OnRestartTouchClicked"
+                                    Tag="сенсор перезапуск touch reset" />
                             <Button Content="Перезапуск COM-портов"
                                     Style="{StaticResource BaseButton}"
                                     Height="44"
                                     MinWidth="170"
                                     Margin="0 12 12 12"
-                                    Click="OnRestartComClicked" />
+                                    Click="OnRestartComClicked"
+                                    Tag="com port serial rs232" />
                             <Button Content="Перезапуск и очистка дисп. печати"
                                     Style="{StaticResource BaseButton}"
                                     Height="44"
                                     MinWidth="230"
                                     Margin="0 12 12 12"
-                                    Click="OnRestartPrintSpoolerClicked" />
+                                    Click="OnRestartPrintSpoolerClicked"
+                                    Tag="печать spooler очередь принтер" />
                             <Button Content="Настройка TLS 1.2"
                                     Style="{StaticResource BaseButton}"
                                     Height="44"
                                     MinWidth="170"
                                     Margin="0 12 12 12"
-                                    Click="OnConfigureTlsClicked" />
+                                    Click="OnConfigureTlsClicked"
+                                    Tag="tls ssl протокол" />
                             <Button Content="Очистить мусор"
                                     Style="{StaticResource BaseButton}"
                                     Height="44"
                                     MinWidth="170"
                                     Margin="0 12 12 12"
-                                    Click="OnCleanupClicked" />
+                                    Click="OnCleanupClicked"
+                                    Tag="очистка temp кеш cache браузер" />
                             <Button Content="Отключить защиту и брандмауэр"
                                     Style="{StaticResource DangerButton}"
                                     Height="44"
                                     MinWidth="220"
                                     Margin="0 12 12 12"
-                                    Click="OnDisableSecurityClicked" />
+                                    Click="OnDisableSecurityClicked"
+                                    Tag="defender firewall защита брандмауэр отключить" />
                         </WrapPanel>
                     </Grid>
                 </Border>

@@ -29,6 +29,7 @@ public partial class MainWindow : Window
     private readonly PrintSpoolService _printSpoolService = new();
     private Action? _pendingConfirmAction;
     private bool? _isTouchEnabled;
+    private List<Button> _actionButtons = new();
 
     public MainWindow()
     {
@@ -133,6 +134,7 @@ public partial class MainWindow : Window
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         UiLogBuffer.OnLog += OnUiLog;
+        _actionButtons = ActionsPanel.Children.OfType<Button>().ToList();
         await RefreshTouchStateAsync();
     }
 
@@ -394,6 +396,40 @@ public partial class MainWindow : Window
         {
             button.Content = "Перезапуск COM-портов";
             button.IsEnabled = true;
+        }
+    }
+
+    private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
+    {
+        ApplySearch(SearchBox.Text);
+    }
+
+    private void OnSearchKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            SearchBox.Text = string.Empty;
+            ApplySearch(string.Empty);
+            e.Handled = true;
+        }
+    }
+
+    private void ApplySearch(string query)
+    {
+        var q = (query ?? string.Empty).Trim().ToLowerInvariant();
+        if (q.Length == 0)
+        {
+            foreach (var btn in _actionButtons)
+            {
+                btn.Visibility = Visibility.Visible;
+            }
+            return;
+        }
+
+        foreach (var btn in _actionButtons)
+        {
+            var text = $"{btn.Content} {btn.Tag}".ToString().ToLowerInvariant();
+            btn.Visibility = text.Contains(q) ? Visibility.Visible : Visibility.Collapsed;
         }
     }
 
