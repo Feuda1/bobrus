@@ -709,6 +709,11 @@ public partial class MainWindow : Window
         await OpenFolderAsync(@"C:\UTM", "UTM");
     }
 
+    private async void OnOpenUtmTransportLogClicked(object sender, RoutedEventArgs e)
+    {
+        await OpenLogAsync(@"C:\UTM\transporter\l\transport_info.log", description: "UTM transport_info.log");
+    }
+
     private async Task OpenPatternLogAsync(string pattern, string friendlyName)
     {
         var dir = Path.Combine(_cashServerBase, "Logs");
