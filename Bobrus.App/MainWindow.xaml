@@ -359,6 +359,13 @@
                                             Margin="0 12 12 12"
                                             Click="OnOpenDeliveryLogClicked"
                                             Tag="лог delivery доставка" />
+                                    <Button Content="messages.log"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="170"
+                                            Margin="0 12 12 12"
+                                            Click="OnOpenMessagesLogClicked"
+                                            Tag="лог messages сообщения" />
                                 </WrapPanel>
                             </Grid>
                         </Border>

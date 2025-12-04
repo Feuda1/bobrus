@@ -674,6 +674,11 @@ public partial class MainWindow : Window
         await OpenLogAsync(Path.Combine(_cashServerBase, "Logs", "plugin-Resto.Front.Api.Delivery.log"), description: "Delivery.log");
     }
 
+    private async void OnOpenMessagesLogClicked(object sender, RoutedEventArgs e)
+    {
+        await OpenLogAsync(Path.Combine(_cashServerBase, "Logs", "messages.log"), description: "messages.log");
+    }
+
     private async Task OpenPatternLogAsync(string pattern, string friendlyName)
     {
         var dir = Path.Combine(_cashServerBase, "Logs");
