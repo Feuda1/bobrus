@@ -33,6 +33,8 @@ using Serilog.Events;
 using System.Text.RegularExpressions;
 using System.IO.Compression;
 using System.Globalization;
+using System.Timers;
+using Timer = System.Timers.Timer;
 
 namespace Bobrus.App;
 
@@ -54,6 +56,8 @@ public partial class MainWindow : Window
     private bool _autostartEnabled;
     private bool _suppressSettingsToggle;
     private bool _isExiting;
+    private bool _updateCheckInProgress;
+    private Timer? _autoUpdateTimer;
     private string SettingsFilePath => Path.Combine(AppPaths.AppDataRoot, "settings.json");
     private const string IikoFrontExePath = @"C:\Program Files\iiko\iikoRMS\Front.Net\iikoFront.Net.exe";
     private const string IikoCardUrl = "https://iiko.biz/ru-RU/About/DownloadPosInstaller?useRc=False";
@@ -69,7 +73,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _updateService = new UpdateService(_httpClient);
-        VersionText.Text = $"v{_updateService.CurrentVersion}";
+        VersionText.Text = $"v{_updateService.CurrentVersion.ToString(3)}";
         _logger.Information("Bobrus запущен. Текущая версия {Version}", _updateService.CurrentVersion);
         Loaded += OnLoaded;
     }
@@ -110,67 +114,8 @@ public partial class MainWindow : Window
 
     private async void OnCheckUpdatesClicked(object sender, RoutedEventArgs e)
     {
-        var willShutdown = false;
-        CheckUpdatesButton.IsEnabled = false;
-        _logger.Information("Запрос на проверку обновлений.");
-        ShowNotification("Проверяем обновления...", NotificationType.Info);
-        AppPaths.CleanupOldUpdates();
-
-        try
-        {
-            var checkResult = await _updateService.CheckForUpdatesAsync(CancellationToken.None);
-            if (!checkResult.IsUpdateAvailable || checkResult.Update is null)
-            {
-                _logger.Information("Обновлений нет: {Message}", checkResult.Message);
-                ShowNotification(checkResult.Message, NotificationType.Info);
-                return;
-            }
-
-            ShowNotification($"Найдена версия {checkResult.Update.LatestVersion}. Скачиваем...", NotificationType.Info);
-            _logger.Information("Найдено обновление {Version}. Начинаем загрузку {Asset}.", checkResult.Update.LatestVersion, checkResult.Update.Asset.Name);
-            var packagePath = _updateService.GetPackageCachePath(checkResult.Update.LatestVersion, checkResult.Update.Asset.Name);
-            var progress = new Progress<double>(p =>
-            {
-                var percent = Math.Clamp((int)(p * 100), 0, 100);
-                UpdateStatusText.Text = string.Empty;
-                if (percent % 10 == 0)
-                {
-                    ShowNotification($"Скачивание {checkResult.Update.LatestVersion}: {percent}%", NotificationType.Info);
-                }
-            });
-
-            await _updateService.DownloadAssetAsync(checkResult.Update.Asset, packagePath, progress, CancellationToken.None);
-
-            ShowNotification("Распаковка пакета...", NotificationType.Info);
-            var extractedFolder = _updateService.ExtractPackage(packagePath, checkResult.Update.LatestVersion);
-
-            var process = _updateService.StartApplyUpdate(extractedFolder, Process.GetCurrentProcess().Id);
-            if (process is null)
-            {
-                _logger.Error("Не найден исполняемый файл в пакете обновления. Ожидалось {Expected}.", "Bobrus.exe");
-                ShowNotification("Не удалось запустить обновление: нет исполняемого файла.", NotificationType.Error);
-                return;
-            }
-
-            _logger.Information("Установка обновления запущена из {Folder}. Процесс {Pid}.", extractedFolder, process.Id);
-            ShowNotification("Устанавливаем обновление...", NotificationType.Info);
-            willShutdown = true;
-            Application.Current.Shutdown();
-            return;
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Ошибка при выполнении обновления.");
-            ShowNotification($"Ошибка обновления: {ex.Message}", NotificationType.Error);
-        }
-        finally
-        {
-            if (!willShutdown)
-            {
-                CheckUpdatesButton.IsEnabled = true;
-                UpdateStatusText.Text = string.Empty;
-            }
-        }
+        OnSettingsOverlayCloseClicked(this, new RoutedEventArgs());
+        await RunUpdateCheckAsync(isAuto: false);
     }
 
     protected override void OnClosed(EventArgs e)
@@ -191,6 +136,8 @@ public partial class MainWindow : Window
             _trayIcon.Dispose();
             _trayIcon = null;
         }
+        _autoUpdateTimer?.Stop();
+        _autoUpdateTimer?.Dispose();
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -205,6 +152,23 @@ public partial class MainWindow : Window
             .ToList();
         await RefreshTouchStateAsync();
         LoadSettingsToggles();
+        StartAutoUpdateTimer();
+    }
+
+    private void StartAutoUpdateTimer()
+    {
+        // Автообновление каждые 2 часа
+        _autoUpdateTimer?.Stop();
+        _autoUpdateTimer?.Dispose();
+        _autoUpdateTimer = new Timer(TimeSpan.FromHours(2).TotalMilliseconds)
+        {
+            AutoReset = true,
+            Enabled = true
+        };
+        _autoUpdateTimer.Elapsed += async (_, _) =>
+        {
+            await Dispatcher.InvokeAsync(async () => await RunUpdateCheckAsync(isAuto: true));
+        };
     }
 
     private void StartReboot()
@@ -1453,6 +1417,146 @@ public partial class MainWindow : Window
         action?.Invoke();
     }
 
+    private async Task RunUpdateCheckAsync(bool isAuto)
+    {
+        if (_updateCheckInProgress)
+        {
+            return;
+        }
+
+        _updateCheckInProgress = true;
+        var willShutdown = false;
+        if (!isAuto)
+        {
+            CheckUpdatesButton.IsEnabled = false;
+            _logger.Information("Запрос на проверку обновлений.");
+            ShowNotification("Проверяем обновления...", NotificationType.Info);
+            SetGlobalProgress("Проверяем обновления...", null);
+        }
+
+        AppPaths.CleanupOldUpdates();
+
+        try
+        {
+            var checkResult = await _updateService.CheckForUpdatesAsync(CancellationToken.None);
+            if (!checkResult.IsUpdateAvailable || checkResult.Update is null)
+            {
+                _logger.Information("Обновлений нет: {Message}", checkResult.Message);
+                if (!isAuto)
+                {
+                    ShowNotification(checkResult.Message, NotificationType.Info);
+                    SetGlobalProgress(null, null);
+                }
+                return;
+            }
+
+            if (!isAuto)
+            {
+                ShowNotification($"Найдена версия {checkResult.Update.LatestVersion}. Скачиваем...", NotificationType.Info);
+                SetGlobalProgress($"Загрузка {checkResult.Update.LatestVersion}", 0);
+            }
+            else
+            {
+                _logger.Information("Автообновление: найдена версия {Version}", checkResult.Update.LatestVersion);
+            }
+
+            var packagePath = _updateService.GetPackageCachePath(checkResult.Update.LatestVersion, checkResult.Update.Asset.Name);
+            IProgress<double>? progress = null;
+            if (!isAuto)
+            {
+                progress = new Progress<double>(p =>
+                {
+                    var percent = Math.Clamp((int)(p * 100), 0, 100);
+                    UpdateStatusText.Text = string.Empty;
+                    SetGlobalProgress($"Загрузка {checkResult.Update.LatestVersion}", percent / 100.0);
+                });
+            }
+
+            await _updateService.DownloadAssetAsync(checkResult.Update.Asset, packagePath, progress, CancellationToken.None);
+
+            if (!isAuto)
+            {
+                SetGlobalProgress("Распаковка...", null);
+            }
+            var extractedFolder = _updateService.ExtractPackage(packagePath, checkResult.Update.LatestVersion);
+            if (!isAuto)
+            {
+                SetGlobalProgress(null, null);
+            }
+
+            var process = _updateService.StartApplyUpdate(extractedFolder, Process.GetCurrentProcess().Id);
+            if (process is null)
+            {
+                _logger.Error("Не найден исполняемый файл в пакете обновления. Ожидалось {Expected}.", "Bobrus.exe");
+                if (!isAuto)
+                {
+                    ShowNotification("Не удалось запустить обновление: нет исполняемого файла.", NotificationType.Error);
+                    SetGlobalProgress(null, null);
+                }
+                return;
+            }
+
+            _logger.Information("Установка обновления запущена из {Folder}. Процесс {Pid}.", extractedFolder, process.Id);
+            if (!isAuto)
+            {
+                ShowNotification("Устанавливаем обновление...", NotificationType.Info);
+                SetGlobalProgress("Устанавливаем обновление...", null);
+            }
+            willShutdown = true;
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Ошибка при выполнении обновления.");
+            if (!isAuto)
+            {
+                ShowNotification($"Ошибка обновления: {ex.Message}", NotificationType.Error);
+                SetGlobalProgress(null, null);
+            }
+        }
+        finally
+        {
+            if (!willShutdown && !isAuto)
+            {
+                CheckUpdatesButton.IsEnabled = true;
+                UpdateStatusText.Text = string.Empty;
+                SetGlobalProgress(null, null);
+            }
+
+            _updateCheckInProgress = false;
+        }
+    }
+
+    private void SetGlobalProgress(string? text, double? fraction)
+    {
+        if (GlobalProgressPanel == null || GlobalProgressBar == null || GlobalProgressText == null)
+        {
+            return;
+        }
+
+        if (text is null && fraction is null)
+        {
+            GlobalProgressPanel.Visibility = Visibility.Collapsed;
+            GlobalProgressBar.IsIndeterminate = false;
+            GlobalProgressBar.Value = 0;
+            GlobalProgressText.Text = string.Empty;
+            return;
+        }
+
+        GlobalProgressPanel.Visibility = Visibility.Visible;
+        GlobalProgressText.Text = text ?? string.Empty;
+
+        if (fraction.HasValue)
+        {
+            GlobalProgressBar.IsIndeterminate = false;
+            GlobalProgressBar.Value = Math.Clamp(fraction.Value * 100, 0, 100);
+        }
+        else
+        {
+            GlobalProgressBar.IsIndeterminate = true;
+        }
+    }
+
     private enum NotificationType
     {
         Info,
@@ -1522,12 +1626,27 @@ public partial class MainWindow : Window
     private void LoadSettingsToggles()
     {
         _suppressSettingsToggle = true;
+        var isFirstRun = !File.Exists(SettingsFilePath);
         try
         {
             var settings = LoadAppSettings();
-            _hideToTrayEnabled = settings?.HideToTray ?? false;
+            _hideToTrayEnabled = settings?.HideToTray ?? true;
+            _autostartEnabled = settings?.Autostart ?? true;
 
-            _autostartEnabled = IsAutostartEnabled();
+            if (isFirstRun)
+            {
+                EnsureTrayIcon();
+                SetAutostart(true);
+                SaveAppSettings();
+            }
+            else
+            {
+                _autostartEnabled = IsAutostartEnabled();
+            }
+            if (_hideToTrayEnabled)
+            {
+                EnsureTrayIcon();
+            }
             if (AutostartToggle != null)
             {
                 AutostartToggle.IsChecked = _autostartEnabled;

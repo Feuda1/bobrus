@@ -19,6 +19,7 @@ internal sealed record UpdateCheckResult(bool IsUpdateAvailable, UpdateInfo? Upd
 internal sealed class UpdateService
 {
     private const string PreferredZip = "Bobrus-win-x64.zip";
+    private const string PreferredExe = "Bobrus.exe";
     private const string RepoOwner = "Feuda1";
     private const string RepoName = "bobrus";
     private const string ExecutableName = "Bobrus.exe";
@@ -142,6 +143,43 @@ internal sealed class UpdateService
 
     private async Task<UpdateInfo?> GetLatestReleaseAsync(CancellationToken cancellationToken)
     {
+        // Сначала пытаемся взять самый свежий релиз из списка (учитываем prerelease), чтобы не зависеть от latest/draft.
+        var releasesApi = $"https://api.github.com/repos/{RepoOwner}/{RepoName}/releases?per_page=10";
+        try
+        {
+            using var resp = await _httpClient.GetAsync(releasesApi, cancellationToken);
+            if (resp.IsSuccessStatusCode)
+            {
+                await using var stream = await resp.Content.ReadAsStreamAsync(cancellationToken);
+                using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    UpdateInfo? best = null;
+                    foreach (var rel in doc.RootElement.EnumerateArray())
+                    {
+                        if (rel.TryGetProperty("draft", out var draftProp) && draftProp.GetBoolean()) continue;
+                        var tag = rel.GetPropertyOrDefault("tag_name");
+                        var ver = ParseVersion(tag);
+                        var asset = SelectAsset(rel);
+                        if (asset == null) continue;
+                        if (best is null || ver > best.LatestVersion)
+                        {
+                            best = new UpdateInfo(ver, asset);
+                        }
+                    }
+                    if (best != null)
+                    {
+                        return best;
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // fallback ниже
+        }
+
+        // Fallback на /latest если список не получился
         var apiUrl = $"https://api.github.com/repos/{RepoOwner}/{RepoName}/releases/latest";
         using var response = await _httpClient.GetAsync(apiUrl, cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -149,49 +187,60 @@ internal sealed class UpdateService
             return null;
         }
 
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-
-        var root = document.RootElement;
+        await using var latestStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var latestDoc = await JsonDocument.ParseAsync(latestStream, cancellationToken: cancellationToken);
+        var root = latestDoc.RootElement;
         var version = ParseVersion(root.GetPropertyOrDefault("tag_name"));
+        var latestAsset = SelectAsset(root);
+        return latestAsset == null ? null : new UpdateInfo(version, latestAsset);
+    }
 
-        UpdateAsset? asset = null;
-        if (root.TryGetProperty("assets", out var assetsElement))
+    private UpdateAsset? SelectAsset(JsonElement releaseElement)
+    {
+        if (!releaseElement.TryGetProperty("assets", out var assetsElement)) return null;
+
+        UpdateAsset? preferred = null;
+        UpdateAsset? any = null;
+        foreach (var assetElement in assetsElement.EnumerateArray())
         {
-            foreach (var assetElement in assetsElement.EnumerateArray())
+            var name = assetElement.GetPropertyOrDefault("name");
+            var url = assetElement.GetPropertyOrDefault("browser_download_url");
+            long? size = null;
+            if (assetElement.TryGetProperty("size", out var sizeProp))
             {
-                var name = assetElement.GetPropertyOrDefault("name");
-                var url = assetElement.GetPropertyOrDefault("browser_download_url");
-                long? size = null;
-                if (assetElement.TryGetProperty("size", out var sizeProp))
-                {
-                    size = sizeProp.GetInt64();
-                }
+                size = sizeProp.GetInt64();
+            }
 
-                if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(url))
-                {
-                    continue;
-                }
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(url))
+            {
+                continue;
+            }
 
-                if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) && name.Equals(PreferredZip, StringComparison.OrdinalIgnoreCase))
-                {
-                    asset = new UpdateAsset(name, url, size);
-                    break;
-                }
+            bool IsZip = name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
+            bool IsExe = name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
 
-                if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) && asset is null)
-                {
-                    asset = new UpdateAsset(name, url, size);
-                }
+            if (IsZip && name.Equals(PreferredZip, StringComparison.OrdinalIgnoreCase))
+            {
+                return new UpdateAsset(name, url, size);
+            }
+
+            if (IsExe && name.Equals(PreferredExe, StringComparison.OrdinalIgnoreCase))
+            {
+                return new UpdateAsset(name, url, size);
+            }
+
+            if ((IsZip || IsExe) && preferred is null)
+            {
+                preferred = new UpdateAsset(name, url, size);
+            }
+
+            if (any is null)
+            {
+                any = new UpdateAsset(name, url, size);
             }
         }
 
-        if (asset is null)
-        {
-            return null;
-        }
-
-        return new UpdateInfo(version, asset);
+        return preferred ?? any;
     }
 
     private static Version ParseVersion(string? tag)
@@ -205,6 +254,13 @@ internal sealed class UpdateService
         if (cleaned.StartsWith("v", StringComparison.OrdinalIgnoreCase))
         {
             cleaned = cleaned[1..];
+        }
+
+        // Вырезаем первую подходящую группу цифр (поддержка суффиксов типа -beta)
+        var match = System.Text.RegularExpressions.Regex.Match(cleaned, @"\d+(\.\d+){1,3}");
+        if (match.Success && Version.TryParse(match.Value, out var parsed))
+        {
+            return parsed;
         }
 
         if (Version.TryParse(cleaned, out var version))
