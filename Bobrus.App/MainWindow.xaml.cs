@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using Serilog;
@@ -17,6 +18,7 @@ using Bobrus.App.Services;
 using Serilog.Events;
 using System.Text.RegularExpressions;
 using System.IO.Compression;
+using System.Globalization;
 
 namespace Bobrus.App;
 
@@ -40,7 +42,6 @@ public partial class MainWindow : Window
     private Action? _pendingConfirmAction;
     private bool? _isTouchEnabled;
     private List<Button> _actionButtons = new();
-    private List<DateTime> _availableLogDates = new();
 
     public MainWindow()
     {
@@ -60,7 +61,17 @@ public partial class MainWindow : Window
     protected override void OnStateChanged(EventArgs e)
     {
         base.OnStateChanged(e);
+        if (WindowState == WindowState.Minimized)
+        {
+            HideAllDropdowns();
+        }
         AdjustToWorkArea();
+    }
+
+    protected override void OnDeactivated(EventArgs e)
+    {
+        base.OnDeactivated(e);
+        HideAllDropdowns();
     }
 
     private void OnRebootClicked(object sender, RoutedEventArgs e)
@@ -140,6 +151,8 @@ public partial class MainWindow : Window
         base.OnClosed(e);
         _httpClient.Dispose();
         UiLogBuffer.OnLog -= OnUiLog;
+        TryKillNetworkProcess();
+        TryDisposeNetworkProcess();
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -147,12 +160,10 @@ public partial class MainWindow : Window
         UiLogBuffer.OnLog += OnUiLog;
         _actionButtons = ActionsPanel.Children.OfType<Button>()
             .Concat(IikoActionsPanel.Children.OfType<Button>())
+            .Concat(NetworkActionsPanel.Children.OfType<Button>())
             .Concat(LogsActionsPanel.Children.OfType<Button>())
             .Concat(FoldersActionsPanel.Children.OfType<Button>())
             .ToList();
-        // подключаем обработчики ввода для комбобоксов дат
-        CollectStartDate.AddHandler(TextBoxBase.TextChangedEvent, new TextChangedEventHandler(OnCollectStartTextChanged));
-        CollectEndDate.AddHandler(TextBoxBase.TextChangedEvent, new TextChangedEventHandler(OnCollectEndTextChanged));
         await RefreshTouchStateAsync();
     }
 
@@ -443,6 +454,7 @@ public partial class MainWindow : Window
             }
             SystemCard.Visibility = Visibility.Visible;
             IikoCard.Visibility = Visibility.Visible;
+            NetworkCard.Visibility = Visibility.Visible;
             LogsCard.Visibility = Visibility.Visible;
             FoldersCard.Visibility = Visibility.Visible;
             return;
@@ -456,11 +468,13 @@ public partial class MainWindow : Window
 
         var systemVisible = ActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
         var iikoVisible = IikoActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
+        var networkVisible = NetworkActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
         var logsVisible = LogsActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
         var foldersVisible = FoldersActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
 
         SystemCard.Visibility = systemVisible ? Visibility.Visible : Visibility.Collapsed;
         IikoCard.Visibility = iikoVisible ? Visibility.Visible : Visibility.Collapsed;
+        NetworkCard.Visibility = networkVisible ? Visibility.Visible : Visibility.Collapsed;
         LogsCard.Visibility = logsVisible ? Visibility.Visible : Visibility.Collapsed;
         FoldersCard.Visibility = foldersVisible ? Visibility.Visible : Visibility.Collapsed;
     }
@@ -723,305 +737,6 @@ public partial class MainWindow : Window
     private async void OnOpenUtmTransportLogClicked(object sender, RoutedEventArgs e)
     {
         await OpenLogAsync(@"C:\UTM\transporter\l\transport_info.log", description: "UTM transport_info.log");
-    }
-
-    private void OnCollectLogsClicked(object sender, RoutedEventArgs e)
-    {
-        LoadAvailableLogDates();
-        if (CollectStartDate.Items.Count == 0)
-        {
-            CollectStartDate.Items.Add(DateTime.Today.ToShortDateString());
-            CollectEndDate.Items.Add(DateTime.Today.ToShortDateString());
-        }
-
-        if (CollectStartDate.SelectedIndex < 0 && CollectStartDate.Items.Count > 0)
-        {
-            CollectStartDate.SelectedIndex = 0;
-        }
-        if (CollectEndDate.SelectedIndex < 0 && CollectEndDate.Items.Count > 0)
-        {
-            CollectEndDate.SelectedIndex = 0;
-        }
-
-        CollectIncludeCash.IsChecked = false;
-        CollectIncludeEntities.IsChecked = false;
-        UpdateStartItems(string.Empty);
-        UpdateEndItems(string.Empty);
-        LogCollectOverlay.Visibility = Visibility.Visible;
-    }
-
-    private void OnLogCollectCancelClicked(object sender, RoutedEventArgs e)
-    {
-        LogCollectOverlay.Visibility = Visibility.Collapsed;
-    }
-
-    private async void OnLogCollectAcceptClicked(object sender, RoutedEventArgs e)
-    {
-        var start = ParseDateFromCombo(CollectStartDate, DateTime.Today);
-        var end = ParseDateFromCombo(CollectEndDate, DateTime.Today);
-        if (end < start) end = start;
-        var includeCash = CollectIncludeCash.IsChecked == true;
-        var includeEntities = CollectIncludeEntities.IsChecked == true;
-
-        try
-        {
-            var zipName = $"BobrusLogs_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
-            var zipPath = Path.Combine(Path.GetTempPath(), zipName);
-
-            await Task.Run(() => CreateLogsArchive(zipPath, includeCash, includeEntities, start, end));
-
-            ShowNotification($"Архив логов готов: {zipPath}", NotificationType.Success);
-            _logger.Information("Сбор логов завершён: {Path}", zipPath);
-
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = $"/select,\"{zipPath}\"",
-                    UseShellExecute = true
-                });
-            }
-            catch
-            {
-                // ignore
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Ошибка сбора логов");
-            ShowNotification($"Ошибка сбора логов: {ex.Message}", NotificationType.Error);
-        }
-        finally
-        {
-            LogCollectOverlay.Visibility = Visibility.Collapsed;
-        }
-    }
-
-    private void OnCollectCashToggleChanged(object sender, RoutedEventArgs e)
-    {
-        var cash = CollectIncludeCash.IsChecked == true;
-        if (cash)
-        {
-            CollectIncludeEntities.IsChecked = false;
-            CollectIncludeEntities.IsEnabled = false;
-            CollectIncludeEntities.Opacity = 0.6;
-        }
-        else
-        {
-            CollectIncludeEntities.IsEnabled = true;
-            CollectIncludeEntities.Opacity = 1.0;
-        }
-    }
-
-    private void CreateLogsArchive(string zipPath, bool includeCashServer, bool includeEntities, DateTime startDate, DateTime endDate)
-    {
-        var logsDir = Path.Combine(_cashServerBase, "Logs");
-        var cashRoot = _cashServerBase;
-        var entitiesDir = Path.Combine(_cashServerBase, "EntitiesStorage");
-        var start = startDate.Date;
-        var end = endDate.Date.AddDays(1).AddTicks(-1);
-
-        if (File.Exists(zipPath))
-        {
-            File.Delete(zipPath);
-        }
-
-        using var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create);
-
-        // *.log и архивы логов из Logs
-        if (Directory.Exists(logsDir))
-        {
-            var logFiles = Directory.EnumerateFiles(logsDir, "*.log", SearchOption.TopDirectoryOnly)
-                .Where(f =>
-                {
-                    var ts = File.GetLastWriteTime(f);
-                    return ts >= start && ts <= end;
-                });
-            foreach (var file in logFiles)
-            {
-                AddFileToArchive(archive, file, Path.Combine("Logs", Path.GetFileName(file)));
-            }
-
-            var archiveFiles = Directory.EnumerateFiles(logsDir, "*.*", SearchOption.TopDirectoryOnly)
-                .Where(f => f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
-                            f.EndsWith(".7z", StringComparison.OrdinalIgnoreCase))
-                .Where(f =>
-                {
-                    var ts = File.GetLastWriteTime(f);
-                    return ts >= start && ts <= end;
-                });
-            foreach (var file in archiveFiles)
-            {
-                AddFileToArchive(archive, file, Path.Combine("Logs", Path.GetFileName(file)));
-            }
-        }
-
-        // *.xml из корня CashServer
-        if (Directory.Exists(cashRoot))
-        {
-            var xmlFiles = Directory.EnumerateFiles(cashRoot, "*.xml", SearchOption.TopDirectoryOnly);
-            foreach (var file in xmlFiles)
-            {
-                AddFileToArchive(archive, file, Path.Combine("Config", Path.GetFileName(file)));
-            }
-        }
-
-        // CashServer (опционально)
-        if (includeCashServer && Directory.Exists(cashRoot))
-        {
-            AddDirectoryToArchive(archive, cashRoot, "CashServer");
-        }
-
-        // EntitiesStorage (опционально)
-        if (includeEntities && Directory.Exists(entitiesDir))
-        {
-            AddDirectoryToArchive(archive, entitiesDir, "EntitiesStorage");
-        }
-    }
-
-    private void AddDirectoryToArchive(ZipArchive archive, string dirPath, string entryRoot)
-    {
-        var files = Directory.EnumerateFiles(dirPath, "*.*", SearchOption.AllDirectories);
-        foreach (var file in files)
-        {
-            var relative = Path.GetRelativePath(dirPath, file);
-            var entryName = Path.Combine(entryRoot, relative).Replace('\\', '/');
-            AddFileToArchive(archive, file, entryName);
-        }
-    }
-
-    private void AddFileToArchive(ZipArchive archive, string filePath, string entryName)
-    {
-        try
-        {
-            archive.CreateEntryFromFile(filePath, entryName);
-        }
-        catch (Exception ex)
-        {
-            _logger.Warning(ex, "Не удалось добавить файл {File} в архив", filePath);
-        }
-    }
-
-    private void LoadAvailableLogDates()
-    {
-        var logsDir = Path.Combine(_cashServerBase, "Logs");
-        var dates = new HashSet<DateTime>();
-
-        if (Directory.Exists(logsDir))
-        {
-            var files = Directory.EnumerateFiles(logsDir, "*.*", SearchOption.TopDirectoryOnly)
-                .Where(f => f.EndsWith(".log", StringComparison.OrdinalIgnoreCase) ||
-                            f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
-                            f.EndsWith(".7z", StringComparison.OrdinalIgnoreCase));
-            foreach (var file in files)
-            {
-                var dt = File.GetLastWriteTime(file).Date;
-                dates.Add(dt);
-            }
-        }
-
-        var ordered = dates.OrderByDescending(d => d).ToList();
-        CollectStartDate.Items.Clear();
-        CollectEndDate.Items.Clear();
-        _availableLogDates = ordered;
-    }
-
-    private DateTime ParseDateFromCombo(ComboBox combo, DateTime fallback)
-    {
-        if (combo.SelectedItem is string s && DateTime.TryParse(s, out var dt))
-        {
-            return dt;
-        }
-        return fallback;
-    }
-
-    private void OnCollectStartChanged(object sender, SelectionChangedEventArgs e)
-    {
-        ClampEndDate();
-    }
-
-    private void OnCollectEndChanged(object sender, SelectionChangedEventArgs e)
-    {
-        ClampEndDate();
-    }
-
-    private void ClampEndDate()
-    {
-        var start = ParseDateFromCombo(CollectStartDate, DateTime.Today);
-        var end = ParseDateFromCombo(CollectEndDate, DateTime.Today);
-        if (end < start)
-        {
-            // pick the first date >= start from the list, else fallback to start
-            var match = CollectEndDate.Items
-                .OfType<string>()
-                .Select(s => DateTime.TryParse(s, out var d) ? d : (DateTime?)null)
-                .Where(d => d.HasValue && d.Value >= start)
-                .OrderBy(d => d.Value)
-                .FirstOrDefault();
-
-            var target = match ?? start;
-            var idx = CollectEndDate.Items.IndexOf(target.ToShortDateString());
-            if (idx >= 0)
-            {
-                CollectEndDate.SelectedIndex = idx;
-            }
-        }
-    }
-
-    private void UpdateStartItems(string search)
-    {
-        var current = ParseDateFromCombo(CollectStartDate, DateTime.MinValue);
-        CollectStartDate.Items.Clear();
-
-        var filtered = _availableLogDates
-            .Where(d => string.IsNullOrWhiteSpace(search) || d.ToShortDateString().Contains(search, StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(d => d);
-
-        foreach (var d in filtered)
-        {
-            CollectStartDate.Items.Add(d.ToShortDateString());
-        }
-
-        if (CollectStartDate.Items.Count > 0)
-        {
-            var idx = CollectStartDate.Items.IndexOf(current.ToShortDateString());
-            CollectStartDate.SelectedIndex = idx >= 0 ? idx : 0;
-        }
-    }
-
-    private void UpdateEndItems(string search)
-    {
-        var start = ParseDateFromCombo(CollectStartDate, DateTime.MinValue);
-        var current = ParseDateFromCombo(CollectEndDate, DateTime.MinValue);
-        CollectEndDate.Items.Clear();
-
-        var filtered = _availableLogDates
-            .Where(d => d >= start)
-            .Where(d => string.IsNullOrWhiteSpace(search) || d.ToShortDateString().Contains(search, StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(d => d);
-
-        foreach (var d in filtered)
-        {
-            CollectEndDate.Items.Add(d.ToShortDateString());
-        }
-
-        if (CollectEndDate.Items.Count > 0)
-        {
-            var idx = CollectEndDate.Items.IndexOf(current.ToShortDateString());
-            CollectEndDate.SelectedIndex = idx >= 0 ? idx : 0;
-        }
-    }
-
-    private void OnCollectStartTextChanged(object sender, TextChangedEventArgs e)
-    {
-        UpdateStartItems(CollectStartDate.Text);
-        UpdateEndItems(CollectEndDate.Text);
-    }
-
-    private void OnCollectEndTextChanged(object sender, TextChangedEventArgs e)
-    {
-        UpdateEndItems(CollectEndDate.Text);
     }
 
     private async Task OpenPatternLogAsync(string pattern, string friendlyName)

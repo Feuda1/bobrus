@@ -66,35 +66,65 @@ internal sealed class CleaningService
                 return new CleanupResult(name, 0);
             }
 
-            foreach (var file in SafeEnumFiles(path))
-            {
-                try
-                {
-                    var info = new FileInfo(file);
-                    freed += info.Exists ? info.Length : 0;
-                    info.IsReadOnly = false;
-                    info.Delete();
-                }
-                catch
-                {
-                    // ignore
-                }
-            }
-
-            foreach (var dir in SafeEnumDirectories(path))
-            {
-                try
-                {
-                    Directory.Delete(dir, recursive: true);
-                }
-                catch
-                {
-                    // ignore
-                }
-            }
+            freed += CleanDirectoryRecursive(path);
 
             return new CleanupResult(name, freed);
         });
+    }
+
+    private static long CleanDirectoryRecursive(string path)
+    {
+        long freed = 0;
+
+        IEnumerable<string> files;
+        try
+        {
+            files = Directory.EnumerateFiles(path, "*", SearchOption.TopDirectoryOnly);
+        }
+        catch
+        {
+            return 0;
+        }
+
+        foreach (var file in files)
+        {
+            try
+            {
+                var info = new FileInfo(file);
+                freed += info.Exists ? info.Length : 0;
+                info.IsReadOnly = false;
+                info.Delete();
+            }
+            catch
+            {
+                // ignore locked/denied files
+            }
+        }
+
+        IEnumerable<string> dirs;
+        try
+        {
+            dirs = Directory.EnumerateDirectories(path, "*", SearchOption.TopDirectoryOnly);
+        }
+        catch
+        {
+            return freed;
+        }
+
+        foreach (var dir in dirs)
+        {
+            freed += CleanDirectoryRecursive(dir);
+            try
+            {
+                Directory.Delete(dir, recursive: true);
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        return freed;
     }
 
     private static Task<CleanupResult> CleanFirefoxCaches()
@@ -109,7 +139,17 @@ internal sealed class CleaningService
             }
 
             var freed = 0L;
-            foreach (var profile in SafeEnumDirectories(profilesRoot))
+            IEnumerable<string> profiles;
+            try
+            {
+                profiles = Directory.EnumerateDirectories(profilesRoot, "*", SearchOption.TopDirectoryOnly);
+            }
+            catch
+            {
+                profiles = Enumerable.Empty<string>();
+            }
+
+            foreach (var profile in profiles)
             {
                 var cache = Path.Combine(profile, "cache2");
                 if (!Directory.Exists(cache))
@@ -117,7 +157,17 @@ internal sealed class CleaningService
                     continue;
                 }
 
-                foreach (var file in SafeEnumFiles(cache))
+                IEnumerable<string> files;
+                try
+                {
+                    files = Directory.EnumerateFiles(cache, "*", SearchOption.AllDirectories);
+                }
+                catch
+                {
+                    files = Enumerable.Empty<string>();
+                }
+
+                foreach (var file in files)
                 {
                     try
                     {
@@ -132,7 +182,17 @@ internal sealed class CleaningService
                     }
                 }
 
-                foreach (var dir in SafeEnumDirectories(cache))
+                IEnumerable<string> dirs;
+                try
+                {
+                    dirs = Directory.EnumerateDirectories(cache, "*", SearchOption.AllDirectories).OrderByDescending(p => p.Length);
+                }
+                catch
+                {
+                    dirs = Enumerable.Empty<string>();
+                }
+
+                foreach (var dir in dirs)
                 {
                     try
                     {
@@ -147,30 +207,6 @@ internal sealed class CleaningService
 
             return new CleanupResult("Firefox кеш", freed);
         });
-    }
-
-    private static IEnumerable<string> SafeEnumFiles(string path)
-    {
-        try
-        {
-            return Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories);
-        }
-        catch
-        {
-            return Enumerable.Empty<string>();
-        }
-    }
-
-    private static IEnumerable<string> SafeEnumDirectories(string path)
-    {
-        try
-        {
-            return Directory.EnumerateDirectories(path, "*", SearchOption.AllDirectories).OrderByDescending(p => p.Length);
-        }
-        catch
-        {
-            return Enumerable.Empty<string>();
-        }
     }
 
     private static Task<CleanupResult> EmptyRecycleBin()
@@ -201,7 +237,17 @@ internal sealed class CleaningService
             }
 
             var threshold = DateTime.UtcNow - maxAge;
-            foreach (var file in SafeEnumFiles(path))
+            IEnumerable<string> files;
+            try
+            {
+                files = Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories);
+            }
+            catch
+            {
+                files = Enumerable.Empty<string>();
+            }
+
+            foreach (var file in files)
             {
                 try
                 {

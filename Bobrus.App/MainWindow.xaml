@@ -52,6 +52,22 @@
                            Margin="10 0 0 0"
                            VerticalAlignment="Center"
                            Foreground="{StaticResource TextSecondaryBrush}" />
+                <StackPanel x:Name="GlobalProgressPanel"
+                            Orientation="Horizontal"
+                            Margin="10 0 0 0"
+                            VerticalAlignment="Center"
+                            Visibility="Collapsed">
+                    <ProgressBar x:Name="GlobalProgressBar"
+                                 Width="120"
+                                 Height="6"
+                                 Minimum="0"
+                                 Maximum="100"
+                                 VerticalAlignment="Center" />
+                    <TextBlock x:Name="GlobalProgressText"
+                               Margin="8 0 0 0"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource TextSecondaryBrush}" />
+                </StackPanel>
             </StackPanel>
 
             <Grid Grid.Column="1" />
@@ -233,6 +249,31 @@
                                             Margin="0 12 12 12"
                                             Click="OnDisableSecurityClicked"
                                             Tag="defender firewall защита брандмауэр отключить" />
+                                </WrapPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Network -->
+                        <Border x:Name="NetworkCard" Style="{StaticResource CardBorder}" Padding="18" Margin="0 0 0 14">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="Сеть"
+                                           FontSize="18"
+                                           FontWeight="SemiBold"
+                                           Margin="0 0 0 14" />
+
+                                <WrapPanel x:Name="NetworkActionsPanel" Grid.Row="1" Margin="0" HorizontalAlignment="Stretch">
+                                    <Button Content="Диагностика сети"
+                                            Style="{StaticResource BaseButton}"
+                                            Height="44"
+                                            MinWidth="200"
+                                            Margin="0 12 12 12"
+                                            Click="OnNetworkDiagnosticsClicked"
+                                            Tag="сеть ipconfig ping диагностика проверка связи" />
                                 </WrapPanel>
                             </Grid>
                         </Border>
@@ -547,6 +588,106 @@
             </Grid>
         </Grid>
 
+        <!-- Network overlay -->
+        <Grid x:Name="NetworkOverlay"
+              Grid.RowSpan="3"
+              Background="#88000000"
+              Visibility="Collapsed">
+            <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Width="640" MinHeight="380">
+                <Border Background="{StaticResource PanelBrush}"
+                        BorderBrush="{StaticResource BorderBrushMuted}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="18 18 18 22">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Сеть"
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                            <Button x:Name="NetworkOverlayCloseButton"
+                                    Content="✕"
+                                    Grid.Column="1"
+                                    Style="{StaticResource WindowIconButton}"
+                                    Width="32"
+                                    Height="28"
+                                    Click="OnNetworkOverlayCloseClicked" />
+                        </Grid>
+
+                        <StackPanel Margin="0 12 0 0" Orientation="Vertical">
+                            <TextBlock Text="Адрес" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBox x:Name="NetworkPingInput"
+                                     Margin="0 6 0 10"
+                                     Background="#161620"
+                                     Foreground="#EAEAEA"
+                                     BorderBrush="{StaticResource BorderBrushMuted}"
+                                     BorderThickness="1"
+                                     Padding="6 4" />
+
+                            <StackPanel Orientation="Horizontal" Margin="0 0 0 10">
+                                <Button x:Name="NetworkRunPingButton"
+                                        Content="Запустить ping"
+                                        Style="{StaticResource BaseButton}"
+                                        MinWidth="140"
+                                        Width="140"
+                                        Margin="0 10 10 0"
+                                        Click="OnNetworkRunPingClicked" />
+                                <Button x:Name="NetworkRunIpconfigButton"
+                                        Content="ipconfig"
+                                        Style="{StaticResource BaseButton}"
+                                        MinWidth="120"
+                                        Width="120"
+                                        Margin="0 10 10 0"
+                                        Click="OnNetworkRunIpconfigClicked" />
+                                <Button x:Name="NetworkRunFullDiagButton"
+                                        Content="Полная диагностика"
+                                        Style="{StaticResource BaseButton}"
+                                        MinWidth="170"
+                                        Width="180"
+                                        Margin="0 10 10 0"
+                                        Click="OnNetworkRunFullDiagClicked" />
+                                <Button Content="Очистить вывод"
+                                        Style="{StaticResource BaseButton}"
+                                        MinWidth="120"
+                                        Width="120"
+                                        Click="OnNetworkClearOutputClicked" />
+                            </StackPanel>
+
+                            <TextBlock Text="Вывод"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Margin="0 0 0 6" />
+                            <Border Background="#0C0C10"
+                                    BorderBrush="{StaticResource BorderBrushMuted}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="0"
+                                    MinHeight="200"
+                                    Height="320">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                              HorizontalScrollBarVisibility="Auto"
+                                              Padding="8">
+                                    <TextBox x:Name="NetworkOutputBox"
+                                             Background="Transparent"
+                                             BorderThickness="0"
+                                             Foreground="{StaticResource TextPrimaryBrush}"
+                                             FontFamily="Consolas"
+                                             FontSize="13"
+                                             TextWrapping="Wrap"
+                                             AcceptsReturn="True"
+                                             AcceptsTab="True"
+                                             IsReadOnly="True" />
+                                </ScrollViewer>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
         <!-- Log collect overlay -->
         <Grid x:Name="LogCollectOverlay"
               Grid.RowSpan="3"
@@ -573,7 +714,7 @@
                                     Style="{StaticResource WindowIconButton}"
                                     Width="32"
                                     Height="28"
-                                    Click="OnLogCollectCancelClicked" />
+                                    Click="OnLogCollectOverlayCloseClicked" />
                         </Grid>
 
                         <StackPanel Margin="0 12 0 0">
@@ -581,12 +722,78 @@
                             <StackPanel Orientation="Horizontal" Margin="0 6 0 14">
                                 <StackPanel Width="200">
                                     <TextBlock Text="С начала" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" />
-                                    <ComboBox x:Name="CollectStartDate"
-                                              Style="{StaticResource DarkComboBox}"
-                                              Width="200"
-                                              IsEditable="True"
-                                              IsTextSearchEnabled="False"
-                                              SelectionChanged="OnCollectStartChanged" />
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid Grid.Row="0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="34" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox x:Name="CollectStartInput"
+                                                     Grid.Column="0"
+                                                     Background="#161620"
+                                                     Foreground="#EAEAEA"
+                                                     BorderBrush="{StaticResource BorderBrushMuted}"
+                                                     BorderThickness="1"
+                                                     Padding="6 4"
+                                                     IsReadOnly="True" />
+                                            <Button Grid.Column="1"
+                                                    x:Name="CollectStartToggle"
+                                                    Background="#1F1F2A"
+                                                    Foreground="#EAEAEA"
+                                                    BorderBrush="{StaticResource BorderBrushMuted}"
+                                                    BorderThickness="1 1 1 1"
+                                                    Click="OnCollectStartToggleClicked"
+                                                    Padding="0"
+                                                    Width="34"
+                                                    Height="Auto">
+                                                <Path Data="M 0 0 L 4 4 L 8 0 Z"
+                                                      Fill="#EAEAEA"
+                                                      Stretch="Uniform"
+                                                      Width="12"
+                                                      Height="8"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center" />
+                                            </Button>
+                                        </Grid>
+                                        <Popup x:Name="CollectStartPopup"
+                                               Placement="Bottom"
+                                               PlacementTarget="{Binding ElementName=CollectStartInput}"
+                                               AllowsTransparency="True"
+                                               StaysOpen="True">
+                                            <Border Background="#161620"
+                                                    BorderBrush="{StaticResource BorderBrushMuted}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="4"
+                                                    Padding="6"
+                                                    Width="{Binding ActualWidth, ElementName=CollectStartInput}"
+                                                    MaxHeight="260">
+                                                <StackPanel>
+                                                    <TextBox x:Name="CollectStartSearch"
+                                                             Background="#1F1F2A"
+                                                             Foreground="#EAEAEA"
+                                                             BorderBrush="{StaticResource BorderBrushMuted}"
+                                                             BorderThickness="1"
+                                                             Padding="4"
+                                                             Margin="0 0 0 6"
+                                                             TextChanged="OnCollectStartSearchChanged"
+                                                             PreviewKeyDown="OnCollectStartSearchPreviewKeyDown"
+                                                             GotFocus="OnCollectStartSearchGotFocus" />
+                                                    <ScrollViewer MaxHeight="200"
+                                                                  VerticalScrollBarVisibility="Auto">
+                                                        <ListBox x:Name="CollectStartList"
+                                                                 Background="Transparent"
+                                                                 BorderThickness="0"
+                                                                 Foreground="#EAEAEA"
+                                                                 SelectionChanged="OnCollectStartListSelectionChanged"
+                                                                 PreviewMouseLeftButtonUp="OnCollectStartListClick" />
+                                                    </ScrollViewer>
+                                                </StackPanel>
+                                            </Border>
+                                        </Popup>
+                                    </Grid>
                                 </StackPanel>
                                 <TextBlock Text="по"
                                            VerticalAlignment="Center"
@@ -594,12 +801,78 @@
                                            Foreground="{StaticResource TextSecondaryBrush}" />
                                 <StackPanel Width="200">
                                     <TextBlock Text="До" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" />
-                                    <ComboBox x:Name="CollectEndDate"
-                                              Style="{StaticResource DarkComboBox}"
-                                              Width="200"
-                                              IsEditable="True"
-                                              IsTextSearchEnabled="False"
-                                              SelectionChanged="OnCollectEndChanged" />
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid Grid.Row="0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="34" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox x:Name="CollectEndInput"
+                                                     Grid.Column="0"
+                                                     Background="#161620"
+                                                     Foreground="#EAEAEA"
+                                                     BorderBrush="{StaticResource BorderBrushMuted}"
+                                                     BorderThickness="1"
+                                                     Padding="6 4"
+                                                     IsReadOnly="True" />
+                                            <Button Grid.Column="1"
+                                                    x:Name="CollectEndToggle"
+                                                    Background="#1F1F2A"
+                                                    Foreground="#EAEAEA"
+                                                    BorderBrush="{StaticResource BorderBrushMuted}"
+                                                    BorderThickness="1 1 1 1"
+                                                    Click="OnCollectEndToggleClicked"
+                                                    Padding="0"
+                                                    Width="34"
+                                                    Height="Auto">
+                                                <Path Data="M 0 0 L 4 4 L 8 0 Z"
+                                                      Fill="#EAEAEA"
+                                                      Stretch="Uniform"
+                                                      Width="12"
+                                                      Height="8"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center" />
+                                            </Button>
+                                        </Grid>
+                                        <Popup x:Name="CollectEndPopup"
+                                               Placement="Bottom"
+                                               PlacementTarget="{Binding ElementName=CollectEndInput}"
+                                               AllowsTransparency="True"
+                                               StaysOpen="True">
+                                            <Border Background="#161620"
+                                                    BorderBrush="{StaticResource BorderBrushMuted}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="4"
+                                                    Padding="6"
+                                                    Width="{Binding ActualWidth, ElementName=CollectEndInput}"
+                                                    MaxHeight="260">
+                                                <StackPanel>
+                                                    <TextBox x:Name="CollectEndSearch"
+                                                             Background="#1F1F2A"
+                                                             Foreground="#EAEAEA"
+                                                             BorderBrush="{StaticResource BorderBrushMuted}"
+                                                             BorderThickness="1"
+                                                             Padding="4"
+                                                             Margin="0 0 0 6"
+                                                             TextChanged="OnCollectEndSearchChanged"
+                                                             PreviewKeyDown="OnCollectEndSearchPreviewKeyDown"
+                                                             GotFocus="OnCollectEndSearchGotFocus" />
+                                                    <ScrollViewer MaxHeight="200"
+                                                                  VerticalScrollBarVisibility="Auto">
+                                                        <ListBox x:Name="CollectEndList"
+                                                                 Background="Transparent"
+                                                                 BorderThickness="0"
+                                                                 Foreground="#EAEAEA"
+                                                                 SelectionChanged="OnCollectEndListSelectionChanged"
+                                                                 PreviewMouseLeftButtonUp="OnCollectEndListClick" />
+                                                    </ScrollViewer>
+                                                </StackPanel>
+                                            </Border>
+                                        </Popup>
+                                    </Grid>
                                 </StackPanel>
                             </StackPanel>
 
@@ -616,17 +889,107 @@
                                           Content="Собрать БД"
                                           Foreground="{StaticResource TextPrimaryBrush}"
                                           Margin="0 0 6 0"
+                                          Style="{StaticResource ToggleCheckBox}"
+                                          Checked="OnCollectEntitiesToggleChanged"
+                                          Unchecked="OnCollectEntitiesToggleChanged" />
+                                <StackPanel x:Name="CollectEntitiesOptions"
+                                            Margin="26 6 0 0"
+                                            Visibility="Collapsed">
+                                    <CheckBox x:Name="CollectEntitiesAll"
+                                              Content="Собрать всё"
+                                              Style="{StaticResource ToggleCheckBox}"
+                                              Margin="0 0 0 6"
+                                              Checked="OnCollectEntitiesAllChanged"
+                                              Unchecked="OnCollectEntitiesAllChanged" />
+                                    <CheckBox x:Name="CollectEntitiesFront"
+                                              Content="Собрать БД фронта"
+                                              Style="{StaticResource ToggleCheckBox}"
+                                              Margin="0 0 0 4"
+                                              Checked="OnCollectEntitiesOptionChanged"
+                                              Unchecked="OnCollectEntitiesOptionChanged" />
+                                    <CheckBox x:Name="CollectEntitiesEvents"
+                                              Content="Собрать БД ивентов"
+                                              Style="{StaticResource ToggleCheckBox}"
+                                              Margin="0 0 0 4"
+                                              Checked="OnCollectEntitiesOptionChanged"
+                                              Unchecked="OnCollectEntitiesOptionChanged" />
+                                    <CheckBox x:Name="CollectEntitiesPlugins"
+                                              Content="Собрать БД плагинов"
+                                              Style="{StaticResource ToggleCheckBox}"
+                                              Margin="0 0 0 4"
+                                              Checked="OnCollectEntitiesOptionChanged"
+                                              Unchecked="OnCollectEntitiesOptionChanged" />
+                                    <CheckBox x:Name="CollectEntitiesSearch"
+                                              Content="Собрать БД поиска"
+                                              Style="{StaticResource ToggleCheckBox}"
+                                              Margin="0 0 0 4"
+                                              Checked="OnCollectEntitiesOptionChanged"
+                                              Unchecked="OnCollectEntitiesOptionChanged" />
+                                    <CheckBox x:Name="CollectEntitiesSync"
+                                              Content="Собрать БД синхронизации"
+                                              Style="{StaticResource ToggleCheckBox}"
+                                              Margin="0 0 0 0"
+                                              Checked="OnCollectEntitiesOptionChanged"
+                                              Unchecked="OnCollectEntitiesOptionChanged" />
+                                </StackPanel>
+                                <CheckBox x:Name="CollectIncludeMsinfo"
+                                          Content="Добавить сведения msinfo32"
+                                          Foreground="{StaticResource TextPrimaryBrush}"
+                                          Margin="0 10 6 0"
                                           Style="{StaticResource ToggleCheckBox}" />
+                                <CheckBox x:Name="CollectIncludeNetDiag"
+                                          Content="Добавить сетевую диагностику"
+                                          Foreground="{StaticResource TextPrimaryBrush}"
+                                          Margin="0 8 6 0"
+                                          Style="{StaticResource ToggleCheckBox}"
+                                          Checked="OnCollectNetDiagToggleChanged"
+                                          Unchecked="OnCollectNetDiagToggleChanged" />
+                                <StackPanel x:Name="CollectNetDiagOptions"
+                                            Margin="26 6 0 0"
+                                            Visibility="Collapsed">
+                                    <TextBlock Text="Сервер"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Margin="0 0 0 4" />
+                                    <TextBox x:Name="CollectNetDiagServerInput"
+                                             Background="#161620"
+                                             Foreground="#EAEAEA"
+                                             BorderBrush="{StaticResource BorderBrushMuted}"
+                                             BorderThickness="1"
+                                             Padding="6 4"
+                                             MinWidth="220" />
+                                    <TextBlock Text="Будет использован встроенный скрипт"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Margin="0 8 0 0" />
+                                </StackPanel>
                             </StackPanel>
                         </StackPanel>
 
+                        <StackPanel x:Name="CollectProgressPanel"
+                                    Orientation="Horizontal"
+                                    Visibility="Collapsed"
+                                    Margin="0 8 0 0"
+                                    VerticalAlignment="Center">
+                            <ProgressBar x:Name="CollectProgressBar"
+                                         Width="200"
+                                         Height="10"
+                                         IsIndeterminate="False"
+                                         Minimum="0"
+                                         Maximum="100"
+                                         Margin="0 0 10 0" />
+                            <TextBlock x:Name="CollectProgressText"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                        </StackPanel>
+
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0 16 0 0">
-                            <Button Content="Отмена"
+                            <Button x:Name="CollectCancelButton"
+                                    Content="Отмена"
                                     Style="{StaticResource BaseButton}"
                                     Width="110"
                                     Margin="0 0 10 0"
                                     Click="OnLogCollectCancelClicked" />
-                            <Button Content="Собрать"
+                            <Button x:Name="CollectAcceptButton"
+                                    Content="Собрать"
                                     Style="{StaticResource AccentButton}"
                                     Width="140"
                                     Click="OnLogCollectAcceptClicked" />
