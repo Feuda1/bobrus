@@ -52,6 +52,7 @@ public partial class MainWindow : Window
     private readonly PrintSpoolService _printSpoolService = new();
     private readonly Thickness _defaultResizeBorder = new(8);
     private HwndSource? _hwndSource;
+    private readonly bool _startHidden;
     private WinForms.NotifyIcon? _trayIcon;
     private bool _hideToTrayEnabled;
     private bool _autostartEnabled;
@@ -59,6 +60,7 @@ public partial class MainWindow : Window
     private bool _isExiting;
     private bool _updateCheckInProgress;
     private Timer? _autoUpdateTimer;
+    private const string StartHiddenArg = "--start-hidden";
     private string SettingsFilePath => Path.Combine(AppPaths.AppDataRoot, "settings.json");
     private const string IikoFrontExePath = @"C:\Program Files\iiko\iikoRMS\Front.Net\iikoFront.Net.exe";
     private const string IikoCardUrl = "https://iiko.biz/ru-RU/About/DownloadPosInstaller?useRc=False";
@@ -76,6 +78,7 @@ public partial class MainWindow : Window
         _updateService = new UpdateService(_httpClient);
         VersionText.Text = $"v{_updateService.CurrentVersion.ToString(3)}";
         _logger.Information("Bobrus запущен. Текущая версия {Version}", _updateService.CurrentVersion);
+        _startHidden = Environment.GetCommandLineArgs().Any(a => string.Equals(a, StartHiddenArg, StringComparison.OrdinalIgnoreCase));
         Loaded += OnLoaded;
     }
 
@@ -154,6 +157,7 @@ public partial class MainWindow : Window
         await RefreshTouchStateAsync();
         LoadSettingsToggles();
         StartAutoUpdateTimer();
+        ApplyStartHidden();
     }
 
     private void StartAutoUpdateTimer()
@@ -1728,7 +1732,7 @@ public partial class MainWindow : Window
             var exePath = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
             if (enable)
             {
-                key.SetValue("Bobrus", $"\"{exePath}\"");
+                key.SetValue("Bobrus", $"\"{exePath}\" {StartHiddenArg}");
             }
             else
             {
@@ -1743,6 +1747,25 @@ public partial class MainWindow : Window
             ShowNotification($"Не удалось изменить автозапуск: {ex.Message}", NotificationType.Error);
             AutostartToggle.IsChecked = _autostartEnabled;
         }
+    }
+
+    private void ApplyStartHidden()
+    {
+        if (!_startHidden)
+        {
+            return;
+        }
+
+        if (_hideToTrayEnabled)
+        {
+            EnsureTrayIcon();
+            Hide();
+            ShowInTaskbar = false;
+            WindowState = WindowState.Minimized;
+            return;
+        }
+
+        WindowState = WindowState.Minimized;
     }
 
     private sealed record AppSettings(bool HideToTray, bool Autostart);
