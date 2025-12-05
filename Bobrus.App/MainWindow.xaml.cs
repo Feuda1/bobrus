@@ -31,6 +31,7 @@ using Bobrus.App.Services;
 using System.Runtime.InteropServices;
 using Serilog.Events;
 using System.Text.RegularExpressions;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Globalization;
 using System.Timers;
@@ -1434,8 +1435,6 @@ public partial class MainWindow : Window
             SetGlobalProgress("Проверяем обновления...", null);
         }
 
-        AppPaths.CleanupOldUpdates();
-
         try
         {
             var checkResult = await _updateService.CheckForUpdatesAsync(CancellationToken.None);
@@ -1680,6 +1679,7 @@ public partial class MainWindow : Window
         }
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Простая сериализация настроек, типы известны и не меняются.")]
     private AppSettings? LoadAppSettings()
     {
         try
@@ -1698,6 +1698,7 @@ public partial class MainWindow : Window
         return null;
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Простая сериализация настроек, типы известны и не меняются.")]
     private void SaveAppSettings()
     {
         try

@@ -23,29 +23,4 @@ internal static class AppPaths
         Directory.CreateDirectory(LogsDirectory);
         Directory.CreateDirectory(UpdatesDirectory);
     }
-
-    public static void CleanupOldUpdates(int keep = 2)
-    {
-        if (!Directory.Exists(UpdatesDirectory))
-        {
-            return;
-        }
-
-        var dirs = new DirectoryInfo(UpdatesDirectory)
-            .GetDirectories()
-            .OrderByDescending(d => d.LastWriteTimeUtc)
-            .ToList();
-
-        foreach (var dir in dirs.Skip(keep))
-        {
-            try
-            {
-                dir.Delete(recursive: true);
-            }
-            catch
-            {
-                // пофиг
-            }
-        }
-    }
 }
