@@ -52,7 +52,7 @@ internal static class UpdateInstaller
         catch (Exception ex)
         {
             Log.Error(ex, "Ошибка при установке обновления.");
-            MessageBox.Show($"Не удалось установить обновление: {ex.Message}", "Обновление", MessageBoxButton.OK, MessageBoxImage.Error);
+            System.Windows.MessageBox.Show($"Не удалось установить обновление: {ex.Message}", "Обновление", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
         return true;

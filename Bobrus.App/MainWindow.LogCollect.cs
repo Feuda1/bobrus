@@ -6,10 +6,16 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using System.Windows.Input;
+using CheckBox = System.Windows.Controls.CheckBox;
+using TextBox = System.Windows.Controls.TextBox;
+using ListBox = System.Windows.Controls.ListBox;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using SelectionChangedEventArgs = System.Windows.Controls.SelectionChangedEventArgs;
+using TextChangedEventArgs = System.Windows.Controls.TextChangedEventArgs;
 using System.Windows.Media;
+using Popup = System.Windows.Controls.Primitives.Popup;
+using ListBoxItem = System.Windows.Controls.ListBoxItem;
+using MouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 using System.Windows.Threading;
 
 namespace Bobrus.App;
@@ -932,6 +938,7 @@ public partial class MainWindow
     {
         CollectStartPopup.IsOpen = false;
         CollectEndPopup.IsOpen = false;
+        ProgramOptionsPopup.IsOpen = false;
     }
 
     private void ShowCollectProgress(string text)

@@ -14,7 +14,21 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Threading;
 using System.Windows.Interop;
+using System.Windows.Shell;
+using System.ComponentModel;
+using WinForms = System.Windows.Forms;
+using Microsoft.Win32;
+using Application = System.Windows.Application;
+using Brush = System.Windows.Media.Brush;
+using Brushes = System.Windows.Media.Brushes;
+using Color = System.Windows.Media.Color;
+using ColorConverter = System.Windows.Media.ColorConverter;
+using SDColor = System.Drawing.Color;
+using Button = System.Windows.Controls.Button;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using System.Text.Json;
 using Bobrus.App.Services;
+using System.Runtime.InteropServices;
 using Serilog.Events;
 using System.Text.RegularExpressions;
 using System.IO.Compression;
@@ -33,6 +47,14 @@ public partial class MainWindow : Window
     private readonly SecurityService _securityService = new();
     private readonly TlsConfigurator _tlsConfigurator = new();
     private readonly PrintSpoolService _printSpoolService = new();
+    private readonly Thickness _defaultResizeBorder = new(8);
+    private HwndSource? _hwndSource;
+    private WinForms.NotifyIcon? _trayIcon;
+    private bool _hideToTrayEnabled;
+    private bool _autostartEnabled;
+    private bool _suppressSettingsToggle;
+    private bool _isExiting;
+    private string SettingsFilePath => Path.Combine(AppPaths.AppDataRoot, "settings.json");
     private const string IikoFrontExePath = @"C:\Program Files\iiko\iikoRMS\Front.Net\iikoFront.Net.exe";
     private const string IikoCardUrl = "https://iiko.biz/ru-RU/About/DownloadPosInstaller?useRc=False";
     private readonly string _cashServerBase = Path.Combine(
@@ -56,6 +78,10 @@ public partial class MainWindow : Window
     {
         base.OnSourceInitialized(e);
         AdjustToWorkArea();
+        AdjustResizeBorder();
+
+        _hwndSource = PresentationSource.FromVisual(this) as HwndSource;
+        _hwndSource?.AddHook(WndProc);
     }
 
     protected override void OnStateChanged(EventArgs e)
@@ -65,6 +91,7 @@ public partial class MainWindow : Window
         {
             HideAllDropdowns();
         }
+        AdjustResizeBorder();
         AdjustToWorkArea();
     }
 
@@ -153,6 +180,17 @@ public partial class MainWindow : Window
         UiLogBuffer.OnLog -= OnUiLog;
         TryKillNetworkProcess();
         TryDisposeNetworkProcess();
+        if (_hwndSource is not null)
+        {
+            _hwndSource.RemoveHook(WndProc);
+            _hwndSource = null;
+        }
+        if (_trayIcon is not null)
+        {
+            _trayIcon.Visible = false;
+            _trayIcon.Dispose();
+            _trayIcon = null;
+        }
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -160,11 +198,13 @@ public partial class MainWindow : Window
         UiLogBuffer.OnLog += OnUiLog;
         _actionButtons = ActionsPanel.Children.OfType<Button>()
             .Concat(IikoActionsPanel.Children.OfType<Button>())
+            .Concat(ProgramsActionsPanel.Children.OfType<Button>())
             .Concat(NetworkActionsPanel.Children.OfType<Button>())
             .Concat(LogsActionsPanel.Children.OfType<Button>())
             .Concat(FoldersActionsPanel.Children.OfType<Button>())
             .ToList();
         await RefreshTouchStateAsync();
+        LoadSettingsToggles();
     }
 
     private void StartReboot()
@@ -454,6 +494,7 @@ public partial class MainWindow : Window
             }
             SystemCard.Visibility = Visibility.Visible;
             IikoCard.Visibility = Visibility.Visible;
+            ProgramsCard.Visibility = Visibility.Visible;
             NetworkCard.Visibility = Visibility.Visible;
             LogsCard.Visibility = Visibility.Visible;
             FoldersCard.Visibility = Visibility.Visible;
@@ -468,12 +509,14 @@ public partial class MainWindow : Window
 
         var systemVisible = ActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
         var iikoVisible = IikoActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
+        var programsVisible = ProgramsActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
         var networkVisible = NetworkActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
         var logsVisible = LogsActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
         var foldersVisible = FoldersActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
 
         SystemCard.Visibility = systemVisible ? Visibility.Visible : Visibility.Collapsed;
         IikoCard.Visibility = iikoVisible ? Visibility.Visible : Visibility.Collapsed;
+        ProgramsCard.Visibility = programsVisible ? Visibility.Visible : Visibility.Collapsed;
         NetworkCard.Visibility = networkVisible ? Visibility.Visible : Visibility.Collapsed;
         LogsCard.Visibility = logsVisible ? Visibility.Visible : Visibility.Collapsed;
         FoldersCard.Visibility = foldersVisible ? Visibility.Visible : Visibility.Collapsed;
@@ -1023,15 +1066,8 @@ public partial class MainWindow : Window
             {
                 if (WindowState == WindowState.Maximized)
                 {
-                    var mousePos = e.GetPosition(this);
-                    var percentX = mousePos.X / ActualWidth;
-                    var percentY = mousePos.Y / ActualHeight;
-                    var screenPos = PointToScreen(mousePos);
-
-                    WindowState = WindowState.Normal;
-
-                    Left = screenPos.X - (RestoreBounds.Width * percentX);
-                    Top = screenPos.Y - (RestoreBounds.Height * percentY);
+                    RestoreAndDragFromMaximized(e);
+                    return;
                 }
 
                 DragMove();
@@ -1041,6 +1077,31 @@ public partial class MainWindow : Window
                 // ignore
             }
         }
+    }
+
+    private void RestoreAndDragFromMaximized(MouseButtonEventArgs e)
+    {
+        var mousePos = e.GetPosition(this);
+        var percentX = mousePos.X / ActualWidth;
+        var percentY = mousePos.Y / ActualHeight;
+        var screenPos = PointToScreen(mousePos);
+
+        WindowState = WindowState.Normal;
+
+        Left = screenPos.X - (RestoreBounds.Width * percentX);
+        Top = screenPos.Y - (RestoreBounds.Height * percentY);
+
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            try
+            {
+                DragMove();
+            }
+            catch
+            {
+                // ignore drag failures
+            }
+        }), DispatcherPriority.Input);
     }
 
     private static bool IsClickOnButton(DependencyObject? source)
@@ -1072,18 +1133,301 @@ public partial class MainWindow : Window
 
     private void AdjustToWorkArea()
     {
-        var area = SystemParameters.WorkArea;
+        var workArea = GetMonitorWorkArea();
 
-        MaxHeight = area.Height;
-        MaxWidth = area.Width;
+        MaxHeight = workArea.Height;
+        MaxWidth = workArea.Width;
 
         if (WindowState == WindowState.Maximized)
         {
-            Left = area.Left;
-            Top = area.Top;
-            Width = area.Width;
-            Height = area.Height;
+            Left = workArea.Left;
+            Top = workArea.Top;
+            Width = workArea.Width;
+            Height = workArea.Height;
+            return;
         }
+
+        Width = Math.Min(Width, workArea.Width);
+        Height = Math.Min(Height, workArea.Height);
+
+        if (Left < workArea.Left) Left = workArea.Left;
+        if (Top < workArea.Top) Top = workArea.Top;
+        if (Left + Width > workArea.Right) Left = workArea.Right - Width;
+        if (Top + Height > workArea.Bottom) Top = workArea.Bottom - Height;
+    }
+
+    private Rect GetMonitorWorkArea()
+    {
+        var handle = new WindowInteropHelper(this).Handle;
+        var monitor = MonitorFromWindow(handle, MonitorDefaultToNearest);
+
+        var info = new MONITORINFO
+        {
+            cbSize = Marshal.SizeOf<MONITORINFO>()
+        };
+
+        if (!GetMonitorInfo(monitor, ref info))
+        {
+            var area = SystemParameters.WorkArea;
+            return new Rect(area.Left, area.Top, area.Width, area.Height);
+        }
+
+        var (scaleX, scaleY) = GetDpiScale();
+        var work = info.rcWork;
+        var left = work.Left / scaleX;
+        var top = work.Top / scaleY;
+        var width = (work.Right - work.Left) / scaleX;
+        var height = (work.Bottom - work.Top) / scaleY;
+        return new Rect(left, top, width, height);
+    }
+
+    private (double scaleX, double scaleY) GetDpiScale()
+    {
+        var source = PresentationSource.FromVisual(this);
+        if (source?.CompositionTarget is { } target)
+        {
+            return (target.TransformToDevice.M11, target.TransformToDevice.M22);
+        }
+
+        return (1.0, 1.0);
+    }
+
+    private const int MonitorDefaultToNearest = 0x00000002;
+    private const int WmGetMinMaxInfo = 0x0024;
+
+    [DllImport("User32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, int dwFlags);
+
+    [DllImport("User32.dll", SetLastError = true)]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MONITORINFO
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public int dwFlags;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X;
+        public int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MINMAXINFO
+    {
+        public POINT ptReserved;
+        public POINT ptMaxSize;
+        public POINT ptMaxPosition;
+        public POINT ptMinTrackSize;
+        public POINT ptMaxTrackSize;
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == WmGetMinMaxInfo)
+        {
+            HandleMinMaxInfo(hwnd, lParam);
+            handled = false;
+        }
+
+        return IntPtr.Zero;
+    }
+
+    private void HandleMinMaxInfo(IntPtr hwnd, IntPtr lParam)
+    {
+        var mmi = Marshal.PtrToStructure<MINMAXINFO>(lParam);
+        var monitor = MonitorFromWindow(hwnd, MonitorDefaultToNearest);
+
+        if (monitor != IntPtr.Zero)
+        {
+            var info = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+            if (GetMonitorInfo(monitor, ref info))
+            {
+                var work = info.rcWork;
+                var monitorArea = info.rcMonitor;
+
+                mmi.ptMaxPosition.X = work.Left - monitorArea.Left;
+                mmi.ptMaxPosition.Y = work.Top - monitorArea.Top;
+                mmi.ptMaxSize.X = work.Right - work.Left;
+                mmi.ptMaxSize.Y = work.Bottom - work.Top;
+            }
+        }
+
+        Marshal.StructureToPtr(mmi, lParam, true);
+    }
+
+    private void AdjustResizeBorder()
+    {
+        var chrome = WindowChrome.GetWindowChrome(this);
+        if (chrome is null)
+        {
+            return;
+        }
+
+        chrome.ResizeBorderThickness = WindowState == WindowState.Maximized
+            ? new Thickness(0)
+            : _defaultResizeBorder;
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (_hideToTrayEnabled && !_isExiting)
+        {
+            e.Cancel = true;
+            EnsureTrayIcon();
+            Hide();
+            ShowInTaskbar = false;
+            WindowState = WindowState.Minimized;
+            return;
+        }
+
+        base.OnClosing(e);
+    }
+
+    private void EnsureTrayIcon()
+    {
+        if (_trayIcon != null)
+        {
+            _trayIcon.Visible = true;
+            return;
+        }
+
+        try
+        {
+            var icon = LoadTrayIcon();
+            var menu = new WinForms.ContextMenuStrip
+            {
+                ShowImageMargin = false,
+                BackColor = ToDrawingColor(FindResource("PanelBrush") as Brush, SDColor.FromArgb(28, 28, 34)),
+                ForeColor = ToDrawingColor(FindResource("TextPrimaryBrush") as Brush, SDColor.White),
+                Font = new System.Drawing.Font("Segoe UI", 9f)
+            };
+            menu.Renderer = new TrayMenuRenderer(
+                ToDrawingColor(FindResource("PanelBrush") as Brush, SDColor.FromArgb(28, 28, 34)),
+                ToDrawingColor(FindResource("BorderBrushMuted") as Brush, SDColor.FromArgb(64, 64, 72)),
+                ToDrawingColor(FindResource("AccentBrush") as Brush, SDColor.FromArgb(56, 166, 118)),
+                ToDrawingColor(FindResource("TextPrimaryBrush") as Brush, SDColor.White));
+
+            menu.Items.Add("Открыть", null, (_, _) => ShowFromTray());
+            menu.Items.Add("Закрыть", null, (_, _) => ExitFromTray());
+
+            _trayIcon = new WinForms.NotifyIcon
+            {
+                Icon = icon,
+                Visible = true,
+                Text = "Bobrus",
+                ContextMenuStrip = menu
+            };
+            _trayIcon.DoubleClick += (_, _) => ShowFromTray();
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Не удалось создать иконку в трее");
+        }
+    }
+
+    private System.Drawing.Icon LoadTrayIcon()
+    {
+        try
+        {
+            var trayIconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico");
+            if (File.Exists(trayIconPath))
+            {
+                return new System.Drawing.Icon(trayIconPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Не удалось загрузить пользовательскую иконку трея");
+        }
+
+        return System.Drawing.Icon.ExtractAssociatedIcon(Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty)
+               ?? System.Drawing.SystemIcons.Application;
+    }
+
+    private static SDColor ToDrawingColor(Brush? brush, SDColor fallback)
+    {
+        if (brush is SolidColorBrush solid)
+        {
+            return SDColor.FromArgb(solid.Color.A, solid.Color.R, solid.Color.G, solid.Color.B);
+        }
+        return fallback;
+    }
+
+    private sealed class TrayMenuRenderer : WinForms.ToolStripProfessionalRenderer
+    {
+        private readonly SDColor _background;
+        private readonly SDColor _border;
+        private readonly SDColor _highlight;
+        private readonly SDColor _text;
+
+        public TrayMenuRenderer(SDColor background, SDColor border, SDColor highlight, SDColor text)
+        {
+            _background = background;
+            _border = border;
+            _highlight = highlight;
+            _text = text;
+        }
+
+        protected override void OnRenderToolStripBorder(System.Windows.Forms.ToolStripRenderEventArgs e)
+        {
+            using var pen = new System.Drawing.Pen(_border);
+            e.Graphics.DrawRectangle(pen, 0, 0, e.ToolStrip.Width - 1, e.ToolStrip.Height - 1);
+        }
+
+        protected override void OnRenderMenuItemBackground(System.Windows.Forms.ToolStripItemRenderEventArgs e)
+        {
+            var rect = new System.Drawing.Rectangle(System.Drawing.Point.Empty, e.Item.Size);
+            var fill = e.Item.Selected ? _highlight : _background;
+            using var brush = new System.Drawing.SolidBrush(fill);
+            e.Graphics.FillRectangle(brush, rect);
+        }
+
+        protected override void OnRenderItemText(System.Windows.Forms.ToolStripItemTextRenderEventArgs e)
+        {
+            e.TextColor = _text;
+            base.OnRenderItemText(e);
+        }
+
+        protected override void OnRenderSeparator(System.Windows.Forms.ToolStripSeparatorRenderEventArgs e)
+        {
+            using var brush = new System.Drawing.SolidBrush(_border);
+            var y = e.Item.Height / 2;
+            e.Graphics.FillRectangle(brush, 4, y, e.Item.Width - 8, 1);
+        }
+    }
+
+    private void ShowFromTray()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            Show();
+            ShowInTaskbar = true;
+            WindowState = WindowState.Normal;
+            Activate();
+        });
+    }
+
+    private void ExitFromTray()
+    {
+        _isExiting = true;
+        _trayIcon?.Dispose();
+        _trayIcon = null;
+        Dispatcher.Invoke(Close);
     }
 
     private void ShowConfirm(string title, string message, Action onConfirm)
@@ -1174,4 +1518,112 @@ public partial class MainWindow : Window
         };
         timer.Start();
     }
+
+    private void LoadSettingsToggles()
+    {
+        _suppressSettingsToggle = true;
+        try
+        {
+            var settings = LoadAppSettings();
+            _hideToTrayEnabled = settings?.HideToTray ?? false;
+
+            _autostartEnabled = IsAutostartEnabled();
+            if (AutostartToggle != null)
+            {
+                AutostartToggle.IsChecked = _autostartEnabled;
+            }
+
+            if (HideToTrayToggle != null)
+            {
+                HideToTrayToggle.IsChecked = _hideToTrayEnabled;
+            }
+        }
+        finally
+        {
+            _suppressSettingsToggle = false;
+        }
+    }
+
+    private bool IsAutostartEnabled()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", writable: false);
+            if (key == null) return false;
+
+            var value = key.GetValue("Bobrus") as string;
+            var exePath = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
+            return string.Equals(value?.Trim('"'), exePath, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private AppSettings? LoadAppSettings()
+    {
+        try
+        {
+            if (File.Exists(SettingsFilePath))
+            {
+                var json = File.ReadAllText(SettingsFilePath);
+                return JsonSerializer.Deserialize<AppSettings>(json);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Не удалось прочитать настройки");
+        }
+
+        return null;
+    }
+
+    private void SaveAppSettings()
+    {
+        try
+        {
+            var settings = new AppSettings(_hideToTrayEnabled, _autostartEnabled);
+            var json = JsonSerializer.Serialize(settings);
+            File.WriteAllText(SettingsFilePath, json);
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Не удалось сохранить настройки");
+        }
+    }
+
+    private void SetAutostart(bool enable)
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", writable: true);
+            if (key == null)
+            {
+                ShowNotification("Не удалось открыть раздел автозагрузки", NotificationType.Error);
+                AutostartToggle.IsChecked = _autostartEnabled;
+                return;
+            }
+
+            var exePath = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
+            if (enable)
+            {
+                key.SetValue("Bobrus", $"\"{exePath}\"");
+            }
+            else
+            {
+                key.DeleteValue("Bobrus", throwOnMissingValue: false);
+            }
+
+            _autostartEnabled = enable;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Не удалось изменить автозапуск");
+            ShowNotification($"Не удалось изменить автозапуск: {ex.Message}", NotificationType.Error);
+            AutostartToggle.IsChecked = _autostartEnabled;
+        }
+    }
+
+    private sealed record AppSettings(bool HideToTray, bool Autostart);
 }

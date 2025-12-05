@@ -23,6 +23,34 @@ public partial class MainWindow
         HideNetworkOverlay();
     }
 
+    private void OnOpenSettingsClicked(object sender, RoutedEventArgs e)
+    {
+        SettingsOverlay.Visibility = Visibility.Visible;
+    }
+
+    private void OnSettingsOverlayCloseClicked(object sender, RoutedEventArgs e)
+    {
+        SettingsOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    private void OnHideToTrayToggleChanged(object sender, RoutedEventArgs e)
+    {
+        if (_suppressSettingsToggle) return;
+        _hideToTrayEnabled = HideToTrayToggle.IsChecked == true;
+        EnsureTrayIcon();
+        ShowNotification(_hideToTrayEnabled ? "При закрытии приложение будет скрываться в трей" : "При закрытии приложение завершится", NotificationType.Info);
+        SaveAppSettings();
+    }
+
+    private void OnAutostartToggleChanged(object sender, RoutedEventArgs e)
+    {
+        if (_suppressSettingsToggle) return;
+        var enable = AutostartToggle.IsChecked == true;
+        SetAutostart(enable);
+        ShowNotification(enable ? "Автозапуск включён" : "Автозапуск выключен", NotificationType.Info);
+        SaveAppSettings();
+    }
+
     private void OnNetworkRunPingClicked(object sender, RoutedEventArgs e)
     {
         ClearNetworkOutput();
@@ -223,16 +251,31 @@ public partial class MainWindow
             };
             if (useOemEncoding)
             {
+                // Пытаемся использовать системную кодировку консоли (учтёт 65001/866/1251), затем запасные варианты.
                 try
                 {
-                    var oemCodePage = CultureInfo.CurrentCulture.TextInfo.OEMCodePage;
-                    var enc = Encoding.GetEncoding(oemCodePage);
-                    psi.StandardOutputEncoding = enc;
-                    psi.StandardErrorEncoding = enc;
+                    psi.StandardOutputEncoding = Console.OutputEncoding;
+                    psi.StandardErrorEncoding = Console.OutputEncoding;
                 }
                 catch
                 {
-                    // ignore, use default encoding
+                    try
+                    {
+                        psi.StandardOutputEncoding = Encoding.GetEncoding(866);
+                        psi.StandardErrorEncoding = Encoding.GetEncoding(866);
+                    }
+                    catch
+                    {
+                        try
+                        {
+                            psi.StandardOutputEncoding = Encoding.GetEncoding(1251);
+                            psi.StandardErrorEncoding = Encoding.GetEncoding(1251);
+                        }
+                        catch
+                        {
+                            // оставляем по умолчанию
+                        }
+                    }
                 }
             }
 
