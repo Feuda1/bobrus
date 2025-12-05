@@ -6,6 +6,7 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bobrus.App", "Bobrus.App\Bobrus.App.csproj", "{351A633F-E8EF-4B38-AFFB-A24366B0C236}"
 EndProject
 Global
+# настройки решения, не трогаем
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|x64 = Debug|x64
