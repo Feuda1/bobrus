@@ -44,7 +44,7 @@ internal static class AppPaths
             }
             catch
             {
-                // ignore cleanup errors
+                // пофиг
             }
         }
     }
