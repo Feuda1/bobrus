@@ -75,7 +75,6 @@ internal sealed class SecurityService
             }
             catch
             {
-                // ignore cleanup issues
             }
         }
         else if (!requireElevation)

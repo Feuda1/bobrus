@@ -17,10 +17,13 @@ internal static class AppPaths
     public static string UpdatesVersionDirectory(string version) =>
         Path.Combine(UpdatesDirectory, version);
 
+    public static string DownloadsDirectory => Path.Combine(AppDataRoot, "downloads");
+
     public static void EnsureBaseDirectories()
     {
         Directory.CreateDirectory(AppDataRoot);
         Directory.CreateDirectory(LogsDirectory);
         Directory.CreateDirectory(UpdatesDirectory);
+        Directory.CreateDirectory(DownloadsDirectory);
     }
 }

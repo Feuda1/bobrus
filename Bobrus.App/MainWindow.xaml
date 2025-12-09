@@ -17,7 +17,7 @@
         ResizeMode="CanResize"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
-        Background="{StaticResource BackgroundBrush}">
+        Background="{DynamicResource BackgroundBrush}">
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="0"
                       ResizeBorderThickness="8"
@@ -26,7 +26,7 @@
                       UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
 
-    <Grid Background="{StaticResource BackgroundBrush}" x:Name="RootGrid">
+    <Grid Background="{DynamicResource BackgroundBrush}" x:Name="RootGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -35,7 +35,7 @@
 
         <!-- Top bar -->
         <Grid Grid.Row="0"
-              Background="{StaticResource TopBarBrush}"
+              Background="{DynamicResource TopBarBrush}"
               Height="60"
               Margin="0"
               SnapsToDevicePixels="True"
@@ -51,7 +51,7 @@
                 <TextBlock x:Name="VersionText"
                            Margin="10 0 0 0"
                            VerticalAlignment="Center"
-                           Foreground="{StaticResource TextSecondaryBrush}" />
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
                 <StackPanel x:Name="GlobalProgressPanel"
                             Orientation="Horizontal"
                             Margin="10 0 0 0"
@@ -66,7 +66,7 @@
                     <TextBlock x:Name="GlobalProgressText"
                                Margin="8 0 0 0"
                                VerticalAlignment="Center"
-                               Foreground="{StaticResource TextSecondaryBrush}" />
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
                 </StackPanel>
             </StackPanel>
 
@@ -91,7 +91,7 @@
                     <Button Style="{StaticResource WindowIconButton}"
                             Click="OnMinimizeClicked">
                         <Viewbox Stretch="Uniform" Width="16" Height="16">
-                            <Path Stroke="{StaticResource TextPrimaryBrush}"
+                            <Path Stroke="{DynamicResource TextPrimaryBrush}"
                                   StrokeThickness="1.8"
                                   StrokeEndLineCap="Round"
                                   StrokeStartLineCap="Round"
@@ -102,7 +102,7 @@
                             Margin="6 0 0 0"
                             Click="OnToggleMaximizeClicked">
                         <Viewbox Stretch="Uniform" Width="16" Height="16">
-                            <Path Stroke="{StaticResource TextPrimaryBrush}"
+                            <Path Stroke="{DynamicResource TextPrimaryBrush}"
                                   StrokeThickness="1.8"
                                   StrokeEndLineCap="Round"
                                   StrokeStartLineCap="Round"
@@ -113,7 +113,7 @@
                             Margin="6 0 0 0"
                             Click="OnCloseClicked">
                         <Viewbox Stretch="Uniform" Width="16" Height="16">
-                            <Path Stroke="{StaticResource TextPrimaryBrush}"
+                            <Path Stroke="{DynamicResource TextPrimaryBrush}"
                                   StrokeThickness="1.8"
                                   StrokeEndLineCap="Round"
                                   StrokeStartLineCap="Round"
@@ -126,8 +126,8 @@
 
         <!-- Search bar -->
         <Grid Grid.Row="1" Margin="12 10 12 8">
-            <Border Background="{StaticResource SurfaceBrush}"
-                    BorderBrush="{StaticResource BorderBrushMuted}"
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrushMuted}"
                     BorderThickness="1"
                     CornerRadius="10"
                     Padding="10 8">
@@ -137,7 +137,7 @@
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
                     <Viewbox Width="18" Height="18" VerticalAlignment="Center">
-                        <Path Stroke="{StaticResource TextSecondaryBrush}"
+                        <Path Stroke="{DynamicResource TextSecondaryBrush}"
                               StrokeThickness="1.6"
                               StrokeLineJoin="Round"
                               StrokeStartLineCap="Round"
@@ -149,8 +149,8 @@
                              Margin="10 0 0 0"
                              Background="Transparent"
                              BorderThickness="0"
-                             Foreground="{StaticResource TextPrimaryBrush}"
-                             CaretBrush="{StaticResource AccentBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             CaretBrush="{DynamicResource AccentBrush}"
                              FontSize="14"
                              TextChanged="OnSearchTextChanged"
                              KeyDown="OnSearchKeyDown"
@@ -163,17 +163,72 @@
         <!-- Main layout -->
         <Grid Grid.Row="2" Margin="12 0 12 12">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="3*" MinWidth="480" />
-                <ColumnDefinition Width="1*" MinWidth="220" MaxWidth="360" />
+                <ColumnDefinition x:Name="SectionNavColumn" Width="Auto" MinWidth="0" />
+                <ColumnDefinition Width="3*" MinWidth="360" />
+                <ColumnDefinition Width="1*" MinWidth="200" MaxWidth="320" />
             </Grid.ColumnDefinitions>
 
-                <!-- Content area -->
-                <ScrollViewer Grid.Column="0"
-                              VerticalScrollBarVisibility="Auto"
+            <Border x:Name="SectionNavContainer"
+                    Grid.Column="0"
+                    Margin="0 0 10 0"
+                    Padding="8"
+                    Background="{DynamicResource PanelBrush}"
+                    BorderBrush="{DynamicResource BorderBrushMuted}"
+                    BorderThickness="1"
+                    CornerRadius="10">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
-                              Padding="0"
-                              Margin="0 0 0 0">
-                    <StackPanel Orientation="Vertical">
+                              HorizontalContentAlignment="Stretch">
+                    <StackPanel x:Name="SectionNav"
+                                Orientation="Vertical"
+                                VerticalAlignment="Top"
+                                HorizontalAlignment="Stretch">
+                        <ToggleButton x:Name="SystemNavToggle"
+                                      Content="Система"
+                                      Tag="System"
+                                      Style="{StaticResource SectionToggleButton}"
+                                      Click="OnSectionNavClicked" />
+                        <ToggleButton x:Name="NetworkNavToggle"
+                                      Content="Сеть"
+                                      Tag="Network"
+                                      Style="{StaticResource SectionToggleButton}"
+                                      Click="OnSectionNavClicked" />
+                        <ToggleButton x:Name="IikoNavToggle"
+                                      Content="IIKO"
+                                      Tag="Iiko"
+                                      Style="{StaticResource SectionToggleButton}"
+                                      Click="OnSectionNavClicked" />
+                        <ToggleButton x:Name="ProgramsNavToggle"
+                                      Content="Программы"
+                                      Tag="Programs"
+                                      Style="{StaticResource SectionToggleButton}"
+                                      Click="OnSectionNavClicked" />
+                        <ToggleButton x:Name="LogsNavToggle"
+                                      Content="Логи"
+                                      Tag="Logs"
+                                      Style="{StaticResource SectionToggleButton}"
+                                      Click="OnSectionNavClicked" />
+                        <ToggleButton x:Name="FoldersNavToggle"
+                                      Content="Папки"
+                                      Tag="Folders"
+                                      Style="{StaticResource SectionToggleButton}"
+                                      Click="OnSectionNavClicked" />
+                        <ToggleButton x:Name="PluginsNavToggle"
+                                      Content="Плагины"
+                                      Tag="Plugins"
+                                      Style="{StaticResource SectionToggleButton}"
+                                      Click="OnSectionNavClicked" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- Content area -->
+            <ScrollViewer Grid.Column="1"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="0"
+                          Margin="0 0 0 0">
+                <StackPanel Orientation="Vertical">
                         <!-- System functions -->
                         <Border x:Name="SystemCard" Style="{StaticResource CardBorder}" Padding="18" Margin="0 0 0 14">
                             <Grid>
@@ -192,45 +247,45 @@
                                             Style="{StaticResource FunctionButton}"
                                             Margin="0 12 12 12"
                                             Click="OnRebootClicked"
-                                            Tag="reboot перезагрузка рестарт" />
+                                            Tag="reboot перезагрузка рестарт restart перезапуск компьютер пк выключить shutdown system" />
                                     <Button x:Name="TouchToggleButton"
                                             Content="Сенсор: проверка..."
                                             Style="{StaticResource FunctionButton}"
                                             Margin="0 12 12 12"
                                             Click="OnTouchToggleClicked"
-                                            Tag="сенсор touch включить отключить" />
+                                            Tag="сенсор touch включить отключить тач тачскрин экран дисплей multitouch сенсорный" />
                                     <Button Content="Перезапуск сенсора"
                                             Style="{StaticResource FunctionButton}"
                                             Margin="0 12 12 12"
                                             Click="OnRestartTouchClicked"
-                                            Tag="сенсор перезапуск touch reset" />
+                                            Tag="сенсор перезапуск touch reset рестарт тач тачскрин экран драйвер сенсорный" />
                                     <Button Content="Перезапуск COM-портов"
                                             Style="{StaticResource FunctionButton}"
                                             Margin="0 12 12 12"
                                             Click="OnRestartComClicked"
-                                            Tag="com port serial rs232" />
+                                            Tag="com port serial rs232 ком порт comport компорт com-порт usb сканер терминал" />
                                     <Button Content="Перезапуск и очистка дисп. печати"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="230"
                                             Margin="0 12 12 12"
                                             Click="OnRestartPrintSpoolerClicked"
-                                            Tag="печать spooler очередь принтер" />
+                                            Tag="печать spooler очередь принтер диспетчер печати print spool очистка restart" />
                                     <Button Content="Настройка TLS 1.2"
                                             Style="{StaticResource FunctionButton}"
                                             Margin="0 12 12 12"
                                             Click="OnConfigureTlsClicked"
-                                            Tag="tls ssl протокол" />
+                                            Tag="tls ssl протокол tls12 schannel шифрование безопасность https крипто" />
                                     <Button Content="Очистить мусор"
                                             Style="{StaticResource FunctionButton}"
                                             Margin="0 12 12 12"
                                             Click="OnCleanupClicked"
-                                            Tag="очистка temp кеш cache браузер" />
+                                            Tag="очистка temp кеш cache браузер cleanup мусор временные файлы чистка" />
                                     <Button Content="Отключить защиту и брандмауэр"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="220"
                                             Margin="0 12 12 12"
                                             Click="OnDisableSecurityClicked"
-                                            Tag="defender firewall защита брандмауэр отключить" />
+                                            Tag="defender firewall защита брандмауэр отключить antivirus антивирус безопасность windows security" />
                                 </WrapPanel>
                             </Grid>
                         </Border>
@@ -254,7 +309,7 @@
                                             MinWidth="200"
                                             Margin="0 12 12 12"
                                             Click="OnNetworkDiagnosticsClicked"
-                                            Tag="сеть ipconfig ping диагностика проверка связи" />
+                                            Tag="сеть ipconfig ping диагностика проверка связи network tracert route интернет dns gateway netstat" />
                                 </WrapPanel>
                             </Grid>
                         </Border>
@@ -278,19 +333,19 @@
                                             MinWidth="180"
                                             Margin="0 12 12 12"
                                             Click="OnCloseIikoFrontClicked"
-                                            Tag="iiko front закрыть завершить процесс" />
+                                            Tag="iiko front закрыть завершить процесс kill taskkill остановить фронт rms iikofront front.net" />
                                     <Button Content="Перезапустить iikoFront"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="200"
                                             Margin="0 12 12 12"
                                             Click="OnRestartIikoFrontClicked"
-                                            Tag="iiko front перезапуск restart" />
+                                            Tag="iiko front перезапуск restart рестарт перезапустить фронт iikofront front.net rms" />
                                     <Button Content="Обновить iikoCard"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="180"
                                             Margin="0 12 12 12"
                                             Click="OnUpdateIikoCardClicked"
-                                            Tag="iiko card обновление installer" />
+                                            Tag="iiko card обновление installer установка иикокард лояльность плагин инсталлятор" />
                                 </WrapPanel>
                             </Grid>
                         </Border>
@@ -316,14 +371,14 @@
                                             MinWidth="170"
                                             Margin="0 12 12 12"
                                             Click="OnSevenZipClicked"
-                                            Tag="7zip архиватор 32 64 семизип" />
+                                            Tag="7zip архиватор 32 64 семизип 7-zip zip архив распаковка" />
                                     <Button x:Name="AdvancedIpScannerButton"
                                             Content="Advanced IP Scanner"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="210"
                                             Margin="0 12 12 12"
                                             Click="OnAdvancedIpScannerClicked"
-                                            Tag="advanced ip scanner сеть сканер">
+                                            Tag="advanced ip scanner сеть сканер адвансед айпи подсеть lan поиск устройств network scan">
                                     </Button>
                                     <Button x:Name="AnyDeskButton"
                                             Content="AnyDesk"
@@ -331,7 +386,7 @@
                                             MinWidth="150"
                                             Margin="0 12 12 12"
                                             Click="OnAnyDeskClicked"
-                                            Tag="anydesk удаленный доступ ремоут">
+                                            Tag="anydesk удаленный доступ ремоут remote desktop анидеск поддержка помощь">
                                     </Button>
                                     <Button x:Name="AssistantButton"
                                             Content="Ассистент"
@@ -339,7 +394,7 @@
                                             MinWidth="160"
                                             Margin="0 12 12 12"
                                             Click="OnAssistantClicked"
-                                            Tag="ассистент помощник мойассистент">
+                                            Tag="ассистент помощник мойассистент assistant support helper диагностика">
                                     </Button>
                                     <Button x:Name="ComPortCheckerButton"
                                             Content="Com Port Checker"
@@ -347,7 +402,7 @@
                                             MinWidth="190"
                                             Margin="0 12 12 12"
                                             Click="OnComPortCheckerClicked"
-                                            Tag="com port checker comport serial">
+                                            Tag="com port checker comport serial ком порт тест чекер проверка usb драйвер">
                                     </Button>
                                     <Button x:Name="DatabaseNetButton"
                                             Content="Database Net"
@@ -355,7 +410,7 @@
                                             MinWidth="170"
                                             Margin="0 12 12 12"
                                             Click="OnDatabaseNetClicked"
-                                            Tag="database net база данных">
+                                            Tag="database net база данных sql db viewer management sqlite браузер">
                                     </Button>
                                     <Button x:Name="NotepadButton"
                                             Content="Notepad++"
@@ -363,14 +418,14 @@
                                             MinWidth="170"
                                             Margin="0 12 12 12"
                                             Click="OnNotepadClicked"
-                                            Tag="notepad++ блокнот npp 32 64" />
+                                            Tag="notepad++ блокнот npp 32 64 нотпад редактор текста text editor code" />
                                     <Button x:Name="PrinterTestButton"
                                             Content="Printer Test V3.1C"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="200"
                                             Margin="0 12 12 12"
                                             Click="OnPrinterTestClicked"
-                                            Tag="printer test чек тест принтер печать">
+                                            Tag="printer test чек тест принтер печать проверка receipt printertest">
                                     </Button>
                                     <Button x:Name="RhelperButton"
                                             Content="Rhelper"
@@ -378,7 +433,7 @@
                                             MinWidth="150"
                                             Margin="0 12 12 12"
                                             Click="OnRhelperClicked"
-                                            Tag="rhelper удаленный доступ remote">
+                                            Tag="rhelper удаленный доступ remote r-helper r helper орхелпер саппорт">
                                     </Button>
                                     <Button x:Name="OrderCheckButton"
                                             Content="OrderCheck"
@@ -386,7 +441,7 @@
                                             MinWidth="160"
                                             Margin="0 12 12 12"
                                             Click="OnOrderCheckClicked"
-                                            Tag="ordercheck order check iiko отчет">
+                                            Tag="ordercheck order check iiko отчет отчеты ордерчек продажи заказы">
                                     </Button>
                                     <Button x:Name="ClearBatButton"
                                             Content="CLEAR.bat"
@@ -394,7 +449,7 @@
                                             MinWidth="150"
                                             Margin="0 12 12 12"
                                             Click="OnClearBatClicked"
-                                            Tag="clear bat очистка">
+                                            Tag="clear bat очистка cleanup скрипт батник temp cache лог мусор">
                                     </Button>
                                     <Button x:Name="FrontToolsButton"
                                             Content="FrontTools"
@@ -402,7 +457,7 @@
                                             MinWidth="180"
                                             Margin="0 12 12 12"
                                             Click="OnFrontToolsClicked"
-                                            Tag="fronttools iikotools sqlite" />
+                                            Tag="fronttools iikotools sqlite front tools утилиты фронт база данных maintenance" />
                                 </WrapPanel>
                             </Grid>
                         </Border>
@@ -426,79 +481,79 @@
                                             MinWidth="150"
                                             Margin="0 12 12 12"
                                             Click="OnOpenConfigLogClicked"
-                                            Tag="лог config cashserver конфиг конфик" />
+                                            Tag="лог config cashserver конфиг конфик config.xml настройки cash server" />
                                     <Button Content="cash-server.log"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="170"
                                             Margin="0 12 12 12"
                                             Click="OnOpenCashServerLogClicked"
-                                            Tag="лог cash server cashserver кэшсервер кешсервер кеш сервер кэш сервер" />
+                                            Tag="лог cash server cashserver кэшсервер кешсервер кеш сервер кэш сервер cash-server.log" />
                                     <Button Content="OnlineMarking.log"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="190"
                                             Margin="0 12 12 12"
                                             Click="OnOpenOnlineMarkingLogClicked"
-                                            Tag="лог online marking маркировка марки честный знак чз" />
+                                            Tag="лог online marking маркировка марки честный знак чз честныйзнак egois егаис" />
                                     <Button Content="dualConnector.log"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="190"
                                             Margin="0 12 12 12"
                                             Click="OnOpenDualConnectorLogClicked"
-                                            Tag="лог dualconnector терминал оплата" />
+                                            Tag="лог dualconnector терминал оплата эквайринг pinpad dual connector банкинг" />
                                     <Button Content="AlcoholMarking.log"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="190"
                                             Margin="0 12 12 12"
                                             Click="OnOpenAlcoholLogClicked"
-                                            Tag="лог alcohol marking алкоголь алкашка" />
+                                            Tag="лог alcohol marking алкоголь алкашка алко алкоконтроль егаис" />
                                     <Button Content="Sberbank.log"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="170"
                                             Margin="0 12 12 12"
                                             Click="OnOpenSberbankLogClicked"
-                                            Tag="лог sberbank оплата сбер сбербанк банк" />
+                                            Tag="лог sberbank оплата сбер сбербанк банк эквайринг терминал сбп pay" />
                                     <Button Content="virtual-printer.log"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="190"
                                             Margin="0 12 12 12"
                                             Click="OnOpenVirtualPrinterLogClicked"
-                                            Tag="лог virtualprinter виртуалпринтер виртуал принтер принтер" />
+                                            Tag="лог virtualprinter виртуалпринтер виртуал принтер принтер виртуальный чек печать" />
                                     <Button Content="Error.log"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="140"
                                             Margin="0 12 12 12"
                                             Click="OnOpenErrorLogClicked"
-                                            Tag="лог ошибки ошибка error еррор ерор" />
+                                            Tag="лог ошибки ошибка error еррор ерор exception crash fail stacktrace" />
                                     <Button Content="Transport.log"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="170"
                                             Margin="0 12 12 12"
                                             Click="OnOpenTransportLogClicked"
-                                            Tag="лог transport плагин транспорт" />
+                                            Tag="лог transport плагин транспорт транспортный сервис plugin доставка" />
                                     <Button Content="Delivery.log"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="170"
                                             Margin="0 12 12 12"
                                             Click="OnOpenDeliveryLogClicked"
-                                            Tag="лог delivery доставка деливери диливири диливери" />
+                                            Tag="лог delivery доставка деливери диливири диливери курьер заказы" />
                                     <Button Content="messages.log"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="170"
                                             Margin="0 12 12 12"
                                             Click="OnOpenMessagesLogClicked"
-                                            Tag="лог message messages месаге меседж месседж мэседж сообщения оповещения" />
+                                            Tag="лог message messages месаге меседж месседж мэседж сообщения оповещения уведомления alerts" />
                                     <Button Content="UTM transport_info.log"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="210"
                                             Margin="0 12 12 12"
                                             Click="OnOpenUtmTransportLogClicked"
-                                            Tag="лог utm transport логи утм утм транспорт" />
+                                            Tag="лог utm transport логи утм утм транспорт transport_info egais егаис" />
                                     <Button Content="Собрать логи"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="160"
                                             Margin="0 12 12 12"
                                             Click="OnCollectLogsClicked"
-                                            Tag="сбор логов logs архив" />
+                                            Tag="сбор логов logs архив сборка архивирование collect выгрузка диагностика" />
                                 </WrapPanel>
                                 </Grid>
                             </Grid>
@@ -523,37 +578,37 @@
                                             MinWidth="170"
                                             Margin="0 12 12 12"
                                             Click="OnOpenFolderLogsClicked"
-                                            Tag="папка логи cashserver logs лог" />
+                                            Tag="папка логи cashserver logs лог директория каталог path" />
                                     <Button Content="EntitiesStorage"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="190"
                                             Margin="0 12 12 12"
                                             Click="OnOpenFolderEntitiesClicked"
-                                            Tag="папка entities storage энтитисторадже энтити сторадже бд база данных база" />
+                                            Tag="папка entities storage энтитисторадже энтити сторадже бд база данных база entitiesstorage" />
                                     <Button Content="CashServer"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="170"
                                             Margin="0 12 12 12"
                                             Click="OnOpenFolderCashServerClicked"
-                                            Tag="папка cashserver кэшсервер кешсервер кеш сервер кэш сервер" />
+                                            Tag="папка cashserver кэшсервер кешсервер кеш сервер кэш сервер cash server кассовый" />
                                     <Button Content="Plugins"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="170"
                                             Margin="0 12 12 12"
                                             Click="OnOpenFolderPluginsClicked"
-                                            Tag="папка front plugins плагин плагины" />
+                                            Tag="папка front plugins плагин плагины plugin folder extensions front.net" />
                                     <Button Content="UTM"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="140"
                                             Margin="0 12 12 12"
                                             Click="OnOpenFolderUtmClicked"
-                                            Tag="папка utm утм" />
+                                            Tag="папка utm утм egais егаис транспорт" />
                                     <Button Content="PluginConfigs"
                                             Style="{StaticResource FunctionButton}"
                                             MinWidth="190"
                                             Margin="0 12 12 12"
                                             Click="OnOpenFolderPluginConfigsClicked"
-                                            Tag="папка pluginconfigs plugin configs конфиги плагинов" />
+                                            Tag="папка pluginconfigs plugin configs конфиги плагинов конфигурация settings" />
                                 </WrapPanel>
                             </Grid>
                         </Border>
@@ -563,11 +618,11 @@
                             <Grid>
                                 <Grid.Resources>
                                     <Style x:Key="PluginListBoxStyle" TargetType="ListBox">
-                                        <Setter Property="Background" Value="{StaticResource PanelBrush}" />
-                                        <Setter Property="BorderBrush" Value="{StaticResource BorderBrushMuted}" />
+                                        <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+                                        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushMuted}" />
                                         <Setter Property="BorderThickness" Value="1" />
                                         <Setter Property="Padding" Value="8" />
-                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                                         <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
                                         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
                                         <Setter Property="Template">
@@ -594,8 +649,8 @@
                                             <Setter.Value>
                                                 <ControlTemplate TargetType="ListBoxItem">
                                                     <Border x:Name="Bd"
-                                                            Background="{StaticResource SurfaceBrush}"
-                                                            BorderBrush="{StaticResource BorderBrushMuted}"
+                                                            Background="{DynamicResource SurfaceBrush}"
+                                                            BorderBrush="{DynamicResource BorderBrushMuted}"
                                                             BorderThickness="1"
                                                             CornerRadius="8"
                                                             Padding="{TemplateBinding Padding}">
@@ -603,16 +658,16 @@
                                                     </Border>
                                                     <ControlTemplate.Triggers>
                                                         <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                                                         </Trigger>
                                                         <Trigger Property="IsSelected" Value="True">
-                                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentBrush}" />
-                                                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                                                         </Trigger>
                                                         <Trigger Property="IsEnabled" Value="False">
                                                             <Setter TargetName="Bd" Property="Opacity" Value="0.8" />
-                                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource SurfaceBrush}" />
-                                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource BorderBrushMuted}" />
+                                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SurfaceBrush}" />
+                                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource BorderBrushMuted}" />
                                                         </Trigger>
                                                     </ControlTemplate.Triggers>
                                                 </ControlTemplate>
@@ -621,96 +676,88 @@
                                     </Style>
 
                                     <DataTemplate x:Key="PluginItemTemplate">
-                                        <TextBlock Text="{Binding DisplayName}"
-                                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                                   TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding DisplayName}"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           TextTrimming="CharacterEllipsis" />
                                     </DataTemplate>
                                 </Grid.Resources>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Margin="0 0 0 12">
+                                    <TextBlock Text="Плагины"
+                                               FontSize="18"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center" />
 
-                                <Grid Grid.Row="0" Margin="0 0 0 12">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
+                                    <WrapPanel x:Name="PluginsTopPanel"
+                                               Margin="0 6 0 2"
+                                               HorizontalAlignment="Left"
+                                               VerticalAlignment="Top">
+                                        <Border Margin="0 4 6 4"
+                                                Background="{DynamicResource SurfaceBrush}"
+                                                BorderBrush="{DynamicResource BorderBrushMuted}"
+                                                BorderThickness="1"
+                                                CornerRadius="8"
+                                                Padding="8 6"
+                                                MinWidth="120"
+                                                MaxWidth="260">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Viewbox Width="14" Height="14" VerticalAlignment="Center">
+                                                    <Path Stroke="{DynamicResource TextSecondaryBrush}"
+                                                          StrokeThickness="1.4"
+                                                          StrokeLineJoin="Round"
+                                                          StrokeStartLineCap="Round"
+                                                          StrokeEndLineCap="Round"
+                                                          Data="M7.5,2 A5.5,5.5 0 1 1 2,7.5 A5.5,5.5 0 0 1 7.5,2 M11.5,11.5 L16,16" />
+                                                </Viewbox>
+                                                <TextBox x:Name="PluginsSearchBox"
+                                                         Grid.Column="1"
+                                                         Margin="8 0 0 0"
+                                                         Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Foreground="{DynamicResource TextPrimaryBrush}"
+                                                        CaretBrush="{DynamicResource AccentBrush}"
+                                                        VerticalContentAlignment="Center"
+                                                        TextChanged="OnPluginsSearchChanged"
+                                                        Tag="Поиск плагинов"
+                                                        MinWidth="100" />
+                                            </Grid>
+                                        </Border>
+                                        <Button Content="↻"
+                                                Style="{StaticResource BaseButton}"
+                                                Width="40"
+                                                Height="32"
+                                                FontSize="16"
+                                                Padding="0"
+                                                HorizontalContentAlignment="Center"
+                                                VerticalContentAlignment="Center"
+                                                Margin="0 4 6 4"
+                                                Click="OnRefreshPluginsClicked" />
+                                        <Button x:Name="InstallPluginButton"
+                                                Content="⬇"
+                                                Style="{StaticResource AccentButton}"
+                                                Width="40"
+                                                Height="32"
+                                                FontSize="16"
+                                                Padding="0"
+                                                HorizontalContentAlignment="Center"
+                                                VerticalContentAlignment="Center"
+                                                Margin="0 4 0 4"
+                                                IsEnabled="False"
+                                                Click="OnInstallPluginClicked" />
+                                    </WrapPanel>
 
-                                <TextBlock Text="Плагины"
-                                           FontSize="18"
-                                           FontWeight="SemiBold"
-                                           VerticalAlignment="Center" />
-
-                                <Grid Grid.Row="1" Margin="0 8 0 0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Margin="0 0 10 0"
-                                            Background="{StaticResource SurfaceBrush}"
-                                            BorderBrush="{StaticResource BorderBrushMuted}"
-                                            BorderThickness="1"
-                                            CornerRadius="8"
-                                            Padding="8 6"
-                                            Height="34"
-                                            VerticalAlignment="Center"
-                                            MinWidth="200"
-                                            MaxWidth="320"
-                                            HorizontalAlignment="Left">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <Viewbox Width="14" Height="14" VerticalAlignment="Center">
-                                                <Path Stroke="{StaticResource TextSecondaryBrush}"
-                                                      StrokeThickness="1.4"
-                                                      StrokeLineJoin="Round"
-                                                      StrokeStartLineCap="Round"
-                                                      StrokeEndLineCap="Round"
-                                                      Data="M7.5,2 A5.5,5.5 0 1 1 2,7.5 A5.5,5.5 0 0 1 7.5,2 M11.5,11.5 L16,16" />
-                                            </Viewbox>
-                                            <TextBox x:Name="PluginsSearchBox"
-                                                     Grid.Column="1"
-                                                     Margin="8 0 0 0"
-                                                     Background="Transparent"
-                                                     BorderThickness="0"
-                                                     Foreground="{StaticResource TextPrimaryBrush}"
-                                                     CaretBrush="{StaticResource AccentBrush}"
-                                                     VerticalContentAlignment="Center"
-                                                     TextChanged="OnPluginsSearchChanged"
-                                                     Tag="Поиск плагинов"
-                                                     MinWidth="160" />
-                                        </Grid>
-                                    </Border>
-                                    <Button Grid.Column="1"
-                                            Content="Обновить"
-                                            Style="{StaticResource BaseButton}"
-                                            Width="120"
-                                            Height="32"
-                                            Margin="0 0 10 0"
-                                            Click="OnRefreshPluginsClicked" />
-                                    <Button Grid.Column="2"
-                                            x:Name="InstallPluginButton"
-                                            Content="Установить"
-                                            Style="{StaticResource AccentButton}"
-                                            Width="120"
-                                            Height="32"
-                                            Margin="0 0 0 0"
-                                            IsEnabled="False"
-                                            Click="OnInstallPluginClicked" />
-                                </Grid>
-
-                                <TextBlock x:Name="PluginStatusText"
-                                           Grid.Row="2"
-                                           Margin="0 6 0 0"
+                                    <TextBlock x:Name="PluginStatusText"
+                                               Margin="0 6 0 0"
                                                VerticalAlignment="Center"
-                                               Foreground="{StaticResource TextSecondaryBrush}" />
-                                </Grid>
+                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                </StackPanel>
 
                                 <Grid Grid.Row="1">
                                     <Grid.ColumnDefinitions>
@@ -753,13 +800,13 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                    <!-- Log panel -->
-                    <Border Style="{StaticResource CardBorder}"
-                            Grid.Column="1"
-                            Padding="12"
-                            Margin="8 0 0 0"
-                            MinWidth="220"
-                            HorizontalAlignment="Stretch">
+            <!-- Log panel -->
+            <Border Style="{StaticResource CardBorder}"
+                    Grid.Column="2"
+                    Padding="12"
+                    Margin="8 0 0 0"
+                    MinWidth="200"
+                    HorizontalAlignment="Stretch">
                         <ScrollViewer VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled">
                             <Grid>
@@ -774,10 +821,6 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Журнал"
-                                               FontSize="16"
-                                               FontWeight="SemiBold"
-                                               VerticalAlignment="Center" />
                                     <Button Content="Очистить"
                                             Style="{StaticResource BaseButton}"
                                             Width="110"
@@ -788,8 +831,8 @@
 
                                 <Border Grid.Row="2"
                                         Margin="0 10 0 0"
-                                        Background="#0C0C10"
-                                        BorderBrush="{StaticResource BorderBrushMuted}"
+                                        Background="{DynamicResource ConsoleBackgroundBrush}"
+                                        BorderBrush="{DynamicResource BorderBrushMuted}"
                                         BorderThickness="1"
                                         CornerRadius="8"
                                         Padding="8">
@@ -802,7 +845,7 @@
                                                 VerticalScrollBarVisibility="Auto"
                                                 HorizontalScrollBarVisibility="Disabled"
                                                 Padding="0"
-                                                Foreground="{StaticResource TextPrimaryBrush}">
+                                                Foreground="{DynamicResource TextPrimaryBrush}">
                                         <FlowDocument>
                                             <Paragraph/>
                                         </FlowDocument>
@@ -829,8 +872,8 @@
                Placement="Bottom"
                AllowsTransparency="True"
                StaysOpen="False">
-            <Border Background="{StaticResource SurfaceBrush}"
-                    BorderBrush="{StaticResource BorderBrushMuted}"
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrushMuted}"
                     BorderThickness="1"
                     CornerRadius="8"
                     Padding="6">
@@ -847,8 +890,8 @@
               Background="#88000000"
               Visibility="Collapsed">
             <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Width="400">
-                <Border Background="{StaticResource PanelBrush}"
-                        BorderBrush="{StaticResource BorderBrushMuted}"
+                <Border Background="{DynamicResource PanelBrush}"
+                        BorderBrush="{DynamicResource BorderBrushMuted}"
                         BorderThickness="1"
                         CornerRadius="10"
                         Padding="18">
@@ -858,7 +901,7 @@
                                    FontWeight="SemiBold"
                                    Margin="0 0 0 8" />
                         <TextBlock x:Name="ConfirmMessage"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
                                    Margin="0 0 0 12" />
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Content="Отмена"
@@ -882,8 +925,8 @@
               Background="#88000000"
               Visibility="Collapsed">
             <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Width="640" MinHeight="380">
-                <Border Background="{StaticResource PanelBrush}"
-                        BorderBrush="{StaticResource BorderBrushMuted}"
+                <Border Background="{DynamicResource PanelBrush}"
+                        BorderBrush="{DynamicResource BorderBrushMuted}"
                         BorderThickness="1"
                         CornerRadius="10"
                         Padding="18 18 18 22">
@@ -907,12 +950,12 @@
                         </Grid>
 
                         <StackPanel Margin="0 12 0 0" Orientation="Vertical">
-                            <TextBlock Text="Адрес" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock Text="Адрес" Foreground="{DynamicResource TextSecondaryBrush}" />
                             <TextBox x:Name="NetworkPingInput"
                                      Margin="0 6 0 10"
-                                     Background="#161620"
-                                     Foreground="#EAEAEA"
-                                     BorderBrush="{StaticResource BorderBrushMuted}"
+                                     Background="{DynamicResource InputBackgroundBrush}"
+                                     Foreground="{DynamicResource InputForegroundBrush}"
+                                     BorderBrush="{DynamicResource BorderBrushMuted}"
                                      BorderThickness="1"
                                      Padding="6 4" />
 
@@ -943,10 +986,10 @@
                             </UniformGrid>
 
                             <TextBlock Text="Вывод"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                        Margin="0 0 0 6" />
-                            <Border Background="#0C0C10"
-                                    BorderBrush="{StaticResource BorderBrushMuted}"
+                            <Border Background="{DynamicResource ConsoleBackgroundBrush}"
+                                    BorderBrush="{DynamicResource BorderBrushMuted}"
                                     BorderThickness="1"
                                     CornerRadius="6"
                                     Padding="0"
@@ -958,7 +1001,7 @@
                                     <TextBox x:Name="NetworkOutputBox"
                                              Background="Transparent"
                                              BorderThickness="0"
-                                             Foreground="{StaticResource TextPrimaryBrush}"
+                                             Foreground="{DynamicResource ConsoleForegroundBrush}"
                                              FontFamily="Consolas"
                                              FontSize="13"
                                              TextWrapping="Wrap"
@@ -979,8 +1022,8 @@
               Background="#88000000"
               Visibility="Collapsed">
             <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Width="520" MinHeight="220">
-                <Border Background="{StaticResource PanelBrush}"
-                        BorderBrush="{StaticResource BorderBrushMuted}"
+                <Border Background="{DynamicResource PanelBrush}"
+                        BorderBrush="{DynamicResource BorderBrushMuted}"
                         BorderThickness="1"
                         CornerRadius="10"
                         Padding="18">
@@ -1015,7 +1058,7 @@
                                 </Button>
                                 <TextBlock x:Name="UpdateStatusText"
                                            VerticalAlignment="Center"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
                                            Margin="10 0 0 0" />
                             </StackPanel>
 
@@ -1036,6 +1079,24 @@
                                           Checked="OnAutostartToggleChanged"
                                           Unchecked="OnAutostartToggleChanged" />
                             </StackPanel>
+
+                            <TextBlock Text="Внешний вид"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Margin="0 10 0 4" />
+                            <StackPanel Orientation="Vertical">
+                                <CheckBox x:Name="ShowAllSectionsToggle"
+                                          Content="Показывать все разделы одним списком"
+                                          Style="{StaticResource ToggleCheckBox}"
+                                          Margin="0 0 0 8"
+                                          Checked="OnShowAllSectionsToggleChanged"
+                                          Unchecked="OnShowAllSectionsToggleChanged" />
+                                <CheckBox x:Name="ThemeToggle"
+                                          Content="Использовать тёмную тему"
+                                          Style="{StaticResource ToggleCheckBox}"
+                                          Checked="OnThemeToggleChanged"
+                                          Unchecked="OnThemeToggleChanged" />
+                            </StackPanel>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -1048,8 +1109,8 @@
               Background="#88000000"
               Visibility="Collapsed">
             <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Width="620" MinHeight="360">
-                <Border Background="{StaticResource PanelBrush}"
-                        BorderBrush="{StaticResource BorderBrushMuted}"
+                <Border Background="{DynamicResource PanelBrush}"
+                        BorderBrush="{DynamicResource BorderBrushMuted}"
                         BorderThickness="1"
                         CornerRadius="10"
                         Padding="18 18 18 30">
@@ -1072,10 +1133,10 @@
                         </Grid>
 
                         <StackPanel Margin="0 12 0 0">
-                            <TextBlock Text="Выберите период" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock Text="Выберите период" Foreground="{DynamicResource TextSecondaryBrush}" />
                             <StackPanel Orientation="Horizontal" Margin="0 6 0 14">
                                 <StackPanel Width="200">
-                                    <TextBlock Text="С начала" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" />
+                                    <TextBlock Text="С начала" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" />
                                     <Grid>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto" />
@@ -1087,24 +1148,24 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBox x:Name="CollectStartInput"
                                                      Grid.Column="0"
-                                                     Background="#161620"
-                                                     Foreground="#EAEAEA"
-                                                     BorderBrush="{StaticResource BorderBrushMuted}"
+                                                     Background="{DynamicResource InputBackgroundBrush}"
+                                                     Foreground="{DynamicResource InputForegroundBrush}"
+                                                     BorderBrush="{DynamicResource BorderBrushMuted}"
                                                      BorderThickness="1"
                                                      Padding="6 4"
                                                      IsReadOnly="True" />
                                             <Button Grid.Column="1"
                                                     x:Name="CollectStartToggle"
-                                                    Background="#1F1F2A"
-                                                    Foreground="#EAEAEA"
-                                                    BorderBrush="{StaticResource BorderBrushMuted}"
+                                                    Background="{DynamicResource InputButtonBackgroundBrush}"
+                                                    Foreground="{DynamicResource InputForegroundBrush}"
+                                                    BorderBrush="{DynamicResource BorderBrushMuted}"
                                                     BorderThickness="1 1 1 1"
                                                     Click="OnCollectStartToggleClicked"
                                                     Padding="0"
                                                     Width="34"
                                                     Height="Auto">
                                                 <Path Data="M 0 0 L 4 4 L 8 0 Z"
-                                                      Fill="#EAEAEA"
+                                                      Fill="{DynamicResource InputForegroundBrush}"
                                                       Stretch="Uniform"
                                                       Width="12"
                                                       Height="8"
@@ -1117,8 +1178,8 @@
                                                PlacementTarget="{Binding ElementName=CollectStartInput}"
                                                AllowsTransparency="True"
                                                StaysOpen="True">
-                                            <Border Background="#161620"
-                                                    BorderBrush="{StaticResource BorderBrushMuted}"
+                                            <Border Background="{DynamicResource InputBackgroundBrush}"
+                                                    BorderBrush="{DynamicResource BorderBrushMuted}"
                                                     BorderThickness="1"
                                                     CornerRadius="4"
                                                     Padding="6"
@@ -1126,9 +1187,9 @@
                                                     MaxHeight="260">
                                                 <StackPanel>
                                                     <TextBox x:Name="CollectStartSearch"
-                                                             Background="#1F1F2A"
-                                                             Foreground="#EAEAEA"
-                                                             BorderBrush="{StaticResource BorderBrushMuted}"
+                                                             Background="{DynamicResource InputButtonBackgroundBrush}"
+                                                             Foreground="{DynamicResource InputForegroundBrush}"
+                                                             BorderBrush="{DynamicResource BorderBrushMuted}"
                                                              BorderThickness="1"
                                                              Padding="4"
                                                              Margin="0 0 0 6"
@@ -1140,7 +1201,7 @@
                                                         <ListBox x:Name="CollectStartList"
                                                                  Background="Transparent"
                                                                  BorderThickness="0"
-                                                                 Foreground="#EAEAEA"
+                                                                 Foreground="{DynamicResource InputForegroundBrush}"
                                                                  SelectionChanged="OnCollectStartListSelectionChanged"
                                                                  PreviewMouseLeftButtonUp="OnCollectStartListClick" />
                                                     </ScrollViewer>
@@ -1152,9 +1213,9 @@
                                 <TextBlock Text="по"
                                            VerticalAlignment="Center"
                                            Margin="10 0 10 0"
-                                           Foreground="{StaticResource TextSecondaryBrush}" />
+                                           Foreground="{DynamicResource TextSecondaryBrush}" />
                                 <StackPanel Width="200">
-                                    <TextBlock Text="До" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" />
+                                    <TextBlock Text="До" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" />
                                     <Grid>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto" />
@@ -1166,24 +1227,24 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBox x:Name="CollectEndInput"
                                                      Grid.Column="0"
-                                                     Background="#161620"
-                                                     Foreground="#EAEAEA"
-                                                     BorderBrush="{StaticResource BorderBrushMuted}"
+                                                     Background="{DynamicResource InputBackgroundBrush}"
+                                                     Foreground="{DynamicResource InputForegroundBrush}"
+                                                     BorderBrush="{DynamicResource BorderBrushMuted}"
                                                      BorderThickness="1"
                                                      Padding="6 4"
                                                      IsReadOnly="True" />
                                             <Button Grid.Column="1"
                                                     x:Name="CollectEndToggle"
-                                                    Background="#1F1F2A"
-                                                    Foreground="#EAEAEA"
-                                                    BorderBrush="{StaticResource BorderBrushMuted}"
+                                                    Background="{DynamicResource InputButtonBackgroundBrush}"
+                                                    Foreground="{DynamicResource InputForegroundBrush}"
+                                                    BorderBrush="{DynamicResource BorderBrushMuted}"
                                                     BorderThickness="1 1 1 1"
                                                     Click="OnCollectEndToggleClicked"
                                                     Padding="0"
                                                     Width="34"
                                                     Height="Auto">
                                                 <Path Data="M 0 0 L 4 4 L 8 0 Z"
-                                                      Fill="#EAEAEA"
+                                                      Fill="{DynamicResource InputForegroundBrush}"
                                                       Stretch="Uniform"
                                                       Width="12"
                                                       Height="8"
@@ -1196,8 +1257,8 @@
                                                PlacementTarget="{Binding ElementName=CollectEndInput}"
                                                AllowsTransparency="True"
                                                StaysOpen="True">
-                                            <Border Background="#161620"
-                                                    BorderBrush="{StaticResource BorderBrushMuted}"
+                                            <Border Background="{DynamicResource InputBackgroundBrush}"
+                                                    BorderBrush="{DynamicResource BorderBrushMuted}"
                                                     BorderThickness="1"
                                                     CornerRadius="4"
                                                     Padding="6"
@@ -1205,9 +1266,9 @@
                                                     MaxHeight="260">
                                                 <StackPanel>
                                                     <TextBox x:Name="CollectEndSearch"
-                                                             Background="#1F1F2A"
-                                                             Foreground="#EAEAEA"
-                                                             BorderBrush="{StaticResource BorderBrushMuted}"
+                                                             Background="{DynamicResource InputButtonBackgroundBrush}"
+                                                             Foreground="{DynamicResource InputForegroundBrush}"
+                                                             BorderBrush="{DynamicResource BorderBrushMuted}"
                                                              BorderThickness="1"
                                                              Padding="4"
                                                              Margin="0 0 0 6"
@@ -1219,7 +1280,7 @@
                                                         <ListBox x:Name="CollectEndList"
                                                                  Background="Transparent"
                                                                  BorderThickness="0"
-                                                                 Foreground="#EAEAEA"
+                                                                 Foreground="{DynamicResource InputForegroundBrush}"
                                                                  SelectionChanged="OnCollectEndListSelectionChanged"
                                                                  PreviewMouseLeftButtonUp="OnCollectEndListClick" />
                                                     </ScrollViewer>
@@ -1230,18 +1291,18 @@
                                 </StackPanel>
                             </StackPanel>
 
-                            <TextBlock Text="Дополнительно" Foreground="{StaticResource TextSecondaryBrush}" Margin="0 4 0 6" />
+                            <TextBlock Text="Дополнительно" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0 4 0 6" />
                             <StackPanel Orientation="Vertical" Margin="0 0 0 12">
                                 <CheckBox x:Name="CollectIncludeCash"
                                           Content="Добавить всю папку CashServer"
-                                          Foreground="{StaticResource TextPrimaryBrush}"
+                                          Foreground="{DynamicResource TextPrimaryBrush}"
                                           Margin="0 0 6 6"
                                           Style="{StaticResource ToggleCheckBox}"
                                           Checked="OnCollectCashToggleChanged"
                                           Unchecked="OnCollectCashToggleChanged" />
                                 <CheckBox x:Name="CollectIncludeEntities"
                                           Content="Собрать БД"
-                                          Foreground="{StaticResource TextPrimaryBrush}"
+                                          Foreground="{DynamicResource TextPrimaryBrush}"
                                           Margin="0 0 6 0"
                                           Style="{StaticResource ToggleCheckBox}"
                                           Checked="OnCollectEntitiesToggleChanged"
@@ -1288,12 +1349,12 @@
                                 </StackPanel>
                                 <CheckBox x:Name="CollectIncludeMsinfo"
                                           Content="Добавить сведения msinfo32"
-                                          Foreground="{StaticResource TextPrimaryBrush}"
+                                          Foreground="{DynamicResource TextPrimaryBrush}"
                                           Margin="0 10 6 0"
                                           Style="{StaticResource ToggleCheckBox}" />
                                 <CheckBox x:Name="CollectIncludeNetDiag"
                                           Content="Добавить сетевую диагностику"
-                                          Foreground="{StaticResource TextPrimaryBrush}"
+                                          Foreground="{DynamicResource TextPrimaryBrush}"
                                           Margin="0 8 6 0"
                                           Style="{StaticResource ToggleCheckBox}"
                                           Checked="OnCollectNetDiagToggleChanged"
@@ -1302,17 +1363,17 @@
                                             Margin="26 6 0 0"
                                             Visibility="Collapsed">
                                     <TextBlock Text="Сервер"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
                                                Margin="0 0 0 4" />
                                     <TextBox x:Name="CollectNetDiagServerInput"
-                                             Background="#161620"
-                                             Foreground="#EAEAEA"
-                                             BorderBrush="{StaticResource BorderBrushMuted}"
+                                             Background="{DynamicResource InputBackgroundBrush}"
+                                             Foreground="{DynamicResource InputForegroundBrush}"
+                                             BorderBrush="{DynamicResource BorderBrushMuted}"
                                              BorderThickness="1"
                                              Padding="6 4"
                                              MinWidth="220" />
                                     <TextBlock Text="Будет использован встроенный скрипт"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
                                                Margin="0 8 0 0" />
                                 </StackPanel>
                             </StackPanel>
@@ -1332,7 +1393,7 @@
                                          Margin="0 0 10 0" />
                             <TextBlock x:Name="CollectProgressText"
                                        VerticalAlignment="Center"
-                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0 16 0 0">

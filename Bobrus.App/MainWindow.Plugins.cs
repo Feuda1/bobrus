@@ -239,7 +239,6 @@ public partial class MainWindow
                 }
                 catch
                 {
-                    // ignore per-file failures
                 }
             }
         }

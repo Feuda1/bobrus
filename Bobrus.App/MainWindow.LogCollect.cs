@@ -96,7 +96,6 @@ public partial class MainWindow
 
     private void OnLogCollectOverlayCloseClicked(object sender, RoutedEventArgs e)
     {
-        // Закрываем окно без отмены процесса
         HideAllDropdowns();
         LogCollectOverlay.Visibility = Visibility.Collapsed;
     }
@@ -153,7 +152,6 @@ public partial class MainWindow
             }
             catch
             {
-                // ignore
             }
         }
         catch (OperationCanceledException)
@@ -218,7 +216,6 @@ public partial class MainWindow
         currentStage++;
         UpdateCollectProgress("Сбор файлов логов", currentStage, totalStages);
         token.ThrowIfCancellationRequested();
-        // *.log и архивы логов из Logs
         if (Directory.Exists(logsDir))
         {
             var logFiles = Directory.EnumerateFiles(logsDir, "*.log", SearchOption.TopDirectoryOnly)
@@ -248,7 +245,6 @@ public partial class MainWindow
             }
         }
 
-        // *.xml из корня CashServer (пропускаем, если забрали весь CashServer)
         if (!includeCashServer && Directory.Exists(cashRoot))
         {
             var xmlFiles = Directory.EnumerateFiles(cashRoot, "*.xml", SearchOption.TopDirectoryOnly);
@@ -258,18 +254,15 @@ public partial class MainWindow
             }
         }
 
-        // CashServer (опционально) — кладём всё, кроме Logs (логи уже добавили отфильтрованными)
         if (includeCashServer && Directory.Exists(cashRoot))
         {
             AddDirectoryToArchive(archive, cashRoot, "CashServer", relative =>
             {
-                // пропускаем папку Logs
                 var firstSegment = relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).FirstOrDefault();
                 return !string.Equals(firstSegment, "Logs", StringComparison.OrdinalIgnoreCase);
             });
         }
 
-        // EntitiesStorage (опционально)
         AddEntitiesStorage(archive, entitiesDir, entitySelection);
         token.ThrowIfCancellationRequested();
 
@@ -670,7 +663,6 @@ public partial class MainWindow
                 }
                 catch
                 {
-                    // ignore
                 }
 
                 reason = "msinfo32.exe превысила таймаут";
@@ -727,7 +719,6 @@ public partial class MainWindow
                 }
                 catch
                 {
-                    // ignore
                 }
 
                 reason = "systeminfo превысила таймаут";
@@ -767,7 +758,6 @@ public partial class MainWindow
         }
         catch
         {
-            // ignore
         }
     }
 

@@ -16,15 +16,14 @@ namespace Bobrus.App;
 
 public partial class MainWindow
 {
-    private readonly string _downloadDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+    private readonly string _downloadDirectory = AppPaths.DownloadsDirectory;
 
     static MainWindow()
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
     }
 
-    private const string SevenZip64Url = "https://release-assets.githubusercontent.com/github-production-release-asset/466446150/c2bad857-316d-4db2-8fdd-f1c81f078739?sp=r&sv=2018-11-09&sr=b&spr=https&se=2025-12-05T13%3A17%3A04Z&rscd=attachment%3B+filename%3D7z2500-x64.exe&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2025-12-05T12%3A16%3A16Z&ske=2025-12-05T13%3A17%3A04Z&sks=b&skv=2018-11-09&sig=iBFFifyvWbPSvwo%2FS6W5IHhnrj7n0hwPWLXBtasnLrk%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc2NDkzODY4NiwibmJmIjoxNzY0OTM4Mzg2LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.GOIgdRusMpiSGqWZShmQrU3c-vPvmFx8Q_2IdcnYUJk&response-content-disposition=attachment%3B%20filename%3D7z2500-x64.exe&response-content-type=application%2Foctet-stream";
-    private const string SevenZip32Url = "https://release-assets.githubusercontent.com/github-production-release-asset/466446150/8f1bd31f-c715-43c6-946c-c987dfe9531e?sp=r&sv=2018-11-09&sr=b&spr=https&se=2025-12-05T13%3A36%3A09Z&rscd=attachment%3B+filename%3D7z2500.exe&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2025-12-05T12%3A35%3A59Z&ske=2025-12-05T13%3A36%3A09Z&sks=b&skv=2018-11-09&sig=AX3aLycaCcr3tkYVfsHqxdzvX570EzM2O%2FIX0IGG4Tc%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc2NDkzODY4OSwibmJmIjoxNzY0OTM4Mzg5LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.cg5K3a3aRfDGlHSwb2HLbm-N0cbLruf2vNIjM_ICLKE&response-content-disposition=attachment%3B%20filename%3D7z2500.exe&response-content-type=application%2Foctet-stream";
+    private const string SevenZipUrl = "https://github.com/Feuda1/Programs-for-Bobrik/releases/download/v1.0.0/7z2500-x64.exe";
     private const string AdvancedIpScannerUrl = "https://download.advanced-ip-scanner.com/download/files/Advanced_IP_Scanner_2.5.4594.1.exe";
     private const string AnyDeskUrl = "https://download.anydesk.com/AnyDesk.exe";
     private const string AssistantUrl = "https://мойассистент.рф/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C/Download/1369";
@@ -41,16 +40,8 @@ public partial class MainWindow
 
     private void OnSevenZipClicked(object sender, RoutedEventArgs e)
     {
-        ShowProgramOptions(SevenZipButton,
-            new ProgramOption("7-Zip 64-bit", () => DownloadProgramAsync("7-Zip 64-bit", SevenZip64Url, SevenZipButton, handling: ProgramHandling.RunInstallerThenReveal)),
-            new ProgramOption("7-Zip 32-bit", () => DownloadProgramAsync("7-Zip 32-bit", SevenZip32Url, SevenZipButton, handling: ProgramHandling.RunInstallerThenReveal)));
+        _ = DownloadProgramAsync("7-Zip", SevenZipUrl, SevenZipButton, handling: ProgramHandling.RunInstallerThenReveal);
     }
-
-    private async void OnSevenZip64Clicked(object sender, RoutedEventArgs e) =>
-        await DownloadProgramAsync("7-Zip 64-bit", SevenZip64Url, SevenZipButton, handling: ProgramHandling.RunInstallerThenReveal);
-
-    private async void OnSevenZip32Clicked(object sender, RoutedEventArgs e) =>
-        await DownloadProgramAsync("7-Zip 32-bit", SevenZip32Url, SevenZipButton, handling: ProgramHandling.RunInstallerThenReveal);
 
     private async void OnAdvancedIpScannerClicked(object sender, RoutedEventArgs e) =>
         await DownloadProgramAsync("Advanced IP Scanner", AdvancedIpScannerUrl, AdvancedIpScannerButton, handling: ProgramHandling.RunInstallerThenReveal);
@@ -379,7 +370,6 @@ public partial class MainWindow
                 var fullPath = Path.GetFullPath(destinationPath);
                 if (!fullPath.StartsWith(targetFolder, StringComparison.OrdinalIgnoreCase))
                 {
-                    // защищаемся от Path Traversal
                     continue;
                 }
 
@@ -412,7 +402,6 @@ public partial class MainWindow
 
     private string DecodeEntryName(string name)
     {
-        // Исходное имя из ZipArchive декодируется как CP437 (по умолчанию), пробуем перекодировать в CP866/1251.
         var enc437 = Encoding.GetEncoding(437);
         var candidates = new[]
         {
@@ -495,7 +484,6 @@ public partial class MainWindow
             return false;
         }
 
-        // Если есть символы замены или нет ни латиницы, ни кириллицы.
         if (name.Contains('�'))
         {
             return true;

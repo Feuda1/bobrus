@@ -15,6 +15,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using System.Windows.Interop;
 using System.Windows.Shell;
+using System.Collections.Generic;
 using System.ComponentModel;
 using WinForms = System.Windows.Forms;
 using Microsoft.Win32;
@@ -60,6 +61,82 @@ public partial class MainWindow : Window
     private bool _isExiting;
     private bool _updateCheckInProgress;
     private Timer? _autoUpdateTimer;
+    private bool _showAllSections;
+    private Section _currentSection = Section.System;
+    private readonly Dictionary<Section, List<Button>> _sectionButtons = new();
+    private ThemeVariant _currentTheme = ThemeVariant.Light;
+    private readonly bool _isFirstRunSettings;
+    private readonly Dictionary<string, Color> _lightTheme = new()
+    {
+        ["BackgroundBrush"] = ColorFromHex("#F5F7FA"),
+        ["PanelBrush"] = ColorFromHex("#FFFFFF"),
+        ["SurfaceBrush"] = ColorFromHex("#F1F4F9"),
+        ["BorderBrushMuted"] = ColorFromHex("#DDE2EB"),
+        ["TextPrimaryBrush"] = ColorFromHex("#1E2330"),
+        ["TextSecondaryBrush"] = ColorFromHex("#4A5568"),
+        ["AccentBrush"] = ColorFromHex("#2F855A"),
+        ["AccentBrushHover"] = ColorFromHex("#276749"),
+        ["AccentBlueBrush"] = ColorFromHex("#2B6CB0"),
+        ["AccentBlueHoverBrush"] = ColorFromHex("#245FA1"),
+        ["DangerBrush"] = ColorFromHex("#C53030"),
+        ["DangerHoverBrush"] = ColorFromHex("#A11919"),
+        ["TopBarBrush"] = ColorFromHex("#EEF1F7"),
+        ["ScrollbarTrackBrush"] = ColorFromHex("#E7EBF2"),
+        ["ScrollbarThumbBrush"] = ColorFromHex("#C6CCD8"),
+        ["ScrollbarThumbHoverBrush"] = ColorFromHex("#B4BAC7"),
+        ["ScrollbarThumbPressedBrush"] = ColorFromHex("#A2A8B6"),
+        ["IconHoverBrush"] = ColorFromHex("#E6ECF4"),
+        ["IconPressedBrush"] = ColorFromHex("#D7DEE9"),
+        ["CloseHoverBrush"] = ColorFromHex("#FFE8E8"),
+        ["ClosePressedBrush"] = ColorFromHex("#FFD6D6"),
+        ["ToggleTrackBrush"] = ColorFromHex("#E2E6EE"),
+        ["ComboHighlightBrush"] = ColorFromHex("#E8EDF7"),
+        ["ComboToggleBackgroundBrush"] = ColorFromHex("#EDEFF5"),
+        ["InputBackgroundBrush"] = ColorFromHex("#FFFFFF"),
+        ["InputForegroundBrush"] = ColorFromHex("#1E2330"),
+        ["InputButtonBackgroundBrush"] = ColorFromHex("#E6EAF2"),
+        ["ConsoleBackgroundBrush"] = ColorFromHex("#F2F4F8"),
+        ["ConsoleForegroundBrush"] = ColorFromHex("#1E2330"),
+        ["OnAccentBrush"] = ColorFromHex("#FFFFFF"),
+        ["NavButtonActiveBrush"] = ColorFromHex("#D8E7FF"),
+        ["NavButtonActiveBorderBrush"] = ColorFromHex("#AAC7FF")
+    };
+
+    private readonly Dictionary<string, Color> _darkTheme = new()
+    {
+        ["BackgroundBrush"] = ColorFromHex("#0D0D11"),
+        ["PanelBrush"] = ColorFromHex("#13131A"),
+        ["SurfaceBrush"] = ColorFromHex("#1A1A23"),
+        ["BorderBrushMuted"] = ColorFromHex("#25252F"),
+        ["TextPrimaryBrush"] = ColorFromHex("#F0F2F8"),
+        ["TextSecondaryBrush"] = ColorFromHex("#B5BAC7"),
+        ["AccentBrush"] = ColorFromHex("#3EA16C"),
+        ["AccentBrushHover"] = ColorFromHex("#318659"),
+        ["AccentBlueBrush"] = ColorFromHex("#2D72D2"),
+        ["AccentBlueHoverBrush"] = ColorFromHex("#245EB0"),
+        ["DangerBrush"] = ColorFromHex("#C0392B"),
+        ["DangerHoverBrush"] = ColorFromHex("#A43126"),
+        ["TopBarBrush"] = ColorFromHex("#16171F"),
+        ["ScrollbarTrackBrush"] = ColorFromHex("#0F0F14"),
+        ["ScrollbarThumbBrush"] = ColorFromHex("#2B2B35"),
+        ["ScrollbarThumbHoverBrush"] = ColorFromHex("#3A3A46"),
+        ["ScrollbarThumbPressedBrush"] = ColorFromHex("#4A4A58"),
+        ["IconHoverBrush"] = ColorFromHex("#1E1E26"),
+        ["IconPressedBrush"] = ColorFromHex("#25252F"),
+        ["CloseHoverBrush"] = ColorFromHex("#3D1D1D"),
+        ["ClosePressedBrush"] = ColorFromHex("#5A2626"),
+        ["ToggleTrackBrush"] = ColorFromHex("#3A3A45"),
+        ["ComboHighlightBrush"] = ColorFromHex("#262633"),
+        ["ComboToggleBackgroundBrush"] = ColorFromHex("#1F1F2A"),
+        ["InputBackgroundBrush"] = ColorFromHex("#161620"),
+        ["InputForegroundBrush"] = ColorFromHex("#EAEAEA"),
+        ["InputButtonBackgroundBrush"] = ColorFromHex("#1F1F2A"),
+        ["ConsoleBackgroundBrush"] = ColorFromHex("#0C0C10"),
+        ["ConsoleForegroundBrush"] = ColorFromHex("#EAEAEA"),
+        ["OnAccentBrush"] = ColorFromHex("#F0F2F8"),
+        ["NavButtonActiveBrush"] = ColorFromHex("#233552"),
+        ["NavButtonActiveBorderBrush"] = ColorFromHex("#34517A")
+    };
     private const string StartHiddenArg = "--start-hidden";
     private string SettingsFilePath => Path.Combine(AppPaths.AppDataRoot, "settings.json");
     private const string IikoFrontExePath = @"C:\Program Files\iiko\iikoRMS\Front.Net\iikoFront.Net.exe";
@@ -74,11 +151,21 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        var settings = LoadAppSettings();
+        _hideToTrayEnabled = settings?.HideToTray ?? true;
+        _autostartEnabled = settings?.Autostart ?? true;
+        _showAllSections = settings?.ShowAllSections ?? false;
+        _currentTheme = ParseTheme(settings?.Theme);
+        _isFirstRunSettings = settings is null;
+
+        ApplyTheme(_currentTheme);
+
         InitializeComponent();
         _updateService = new UpdateService(_httpClient);
         VersionText.Text = $"v{_updateService.CurrentVersion.ToString(3)}";
         _logger.Information("Bobrus запущен. Текущая версия {Version}", _updateService.CurrentVersion);
         _startHidden = Environment.GetCommandLineArgs().Any(a => string.Equals(a, StartHiddenArg, StringComparison.OrdinalIgnoreCase));
+        ApplyInitialSettingsToUi();
         Loaded += OnLoaded;
     }
 
@@ -154,15 +241,14 @@ public partial class MainWindow : Window
             .Concat(LogsActionsPanel.Children.OfType<Button>())
             .Concat(FoldersActionsPanel.Children.OfType<Button>())
             .ToList();
+        BuildSectionButtons();
         await RefreshTouchStateAsync();
-        LoadSettingsToggles();
         StartAutoUpdateTimer();
         ApplyStartHidden();
     }
 
     private void StartAutoUpdateTimer()
     {
-        // Автообновление каждые 2 часа
         _autoUpdateTimer?.Stop();
         _autoUpdateTimer?.Dispose();
         _autoUpdateTimer = new Timer(TimeSpan.FromHours(2).TotalMilliseconds)
@@ -455,40 +541,61 @@ public partial class MainWindow : Window
     private void ApplySearch(string query)
     {
         var q = (query ?? string.Empty).Trim().ToLowerInvariant();
+        var targetButtons = _showAllSections ? _actionButtons : GetButtonsForSection(_currentSection);
+
         if (q.Length == 0)
         {
-            foreach (var btn in _actionButtons)
+            foreach (var btn in targetButtons)
             {
                 btn.Visibility = Visibility.Visible;
             }
-            SystemCard.Visibility = Visibility.Visible;
-            IikoCard.Visibility = Visibility.Visible;
-            ProgramsCard.Visibility = Visibility.Visible;
-            NetworkCard.Visibility = Visibility.Visible;
-            LogsCard.Visibility = Visibility.Visible;
-            FoldersCard.Visibility = Visibility.Visible;
+
+            if (_showAllSections)
+            {
+                SystemCard.Visibility = Visibility.Visible;
+                IikoCard.Visibility = Visibility.Visible;
+                ProgramsCard.Visibility = Visibility.Visible;
+                NetworkCard.Visibility = Visibility.Visible;
+                LogsCard.Visibility = Visibility.Visible;
+                FoldersCard.Visibility = Visibility.Visible;
+                PluginsCard.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                SetSectionVisibility(_currentSection);
+            }
+
             return;
         }
 
-        foreach (var btn in _actionButtons)
+        foreach (var btn in targetButtons)
         {
             var text = $"{btn.Content} {btn.Tag}".ToString().ToLowerInvariant();
             btn.Visibility = text.Contains(q) ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        var systemVisible = ActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
-        var iikoVisible = IikoActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
-        var programsVisible = ProgramsActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
-        var networkVisible = NetworkActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
-        var logsVisible = LogsActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
-        var foldersVisible = FoldersActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
+        if (_showAllSections)
+        {
+            var systemVisible = ActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
+            var iikoVisible = IikoActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
+            var programsVisible = ProgramsActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
+            var networkVisible = NetworkActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
+            var logsVisible = LogsActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
+            var foldersVisible = FoldersActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
+            var pluginsVisible = true;
 
-        SystemCard.Visibility = systemVisible ? Visibility.Visible : Visibility.Collapsed;
-        IikoCard.Visibility = iikoVisible ? Visibility.Visible : Visibility.Collapsed;
-        ProgramsCard.Visibility = programsVisible ? Visibility.Visible : Visibility.Collapsed;
-        NetworkCard.Visibility = networkVisible ? Visibility.Visible : Visibility.Collapsed;
-        LogsCard.Visibility = logsVisible ? Visibility.Visible : Visibility.Collapsed;
-        FoldersCard.Visibility = foldersVisible ? Visibility.Visible : Visibility.Collapsed;
+            SystemCard.Visibility = systemVisible ? Visibility.Visible : Visibility.Collapsed;
+            IikoCard.Visibility = iikoVisible ? Visibility.Visible : Visibility.Collapsed;
+            ProgramsCard.Visibility = programsVisible ? Visibility.Visible : Visibility.Collapsed;
+            NetworkCard.Visibility = networkVisible ? Visibility.Visible : Visibility.Collapsed;
+            LogsCard.Visibility = logsVisible ? Visibility.Visible : Visibility.Collapsed;
+            FoldersCard.Visibility = foldersVisible ? Visibility.Visible : Visibility.Collapsed;
+            PluginsCard.Visibility = pluginsVisible ? Visibility.Visible : Visibility.Collapsed;
+        }
+        else
+        {
+            SetSectionVisibility(_currentSection);
+        }
     }
 
     private async void OnRestartPrintSpoolerClicked(object sender, RoutedEventArgs e)
@@ -1043,7 +1150,6 @@ public partial class MainWindow : Window
             }
             catch
             {
-                // ignore
             }
         }
     }
@@ -1068,7 +1174,6 @@ public partial class MainWindow : Window
             }
             catch
             {
-                // ignore drag failures
             }
         }), DispatcherPriority.Input);
     }
@@ -1626,46 +1731,6 @@ public partial class MainWindow : Window
         timer.Start();
     }
 
-    private void LoadSettingsToggles()
-    {
-        _suppressSettingsToggle = true;
-        var isFirstRun = !File.Exists(SettingsFilePath);
-        try
-        {
-            var settings = LoadAppSettings();
-            _hideToTrayEnabled = settings?.HideToTray ?? true;
-            _autostartEnabled = settings?.Autostart ?? true;
-
-            if (isFirstRun)
-            {
-                EnsureTrayIcon();
-                SetAutostart(true);
-                SaveAppSettings();
-            }
-            else
-            {
-                _autostartEnabled = IsAutostartEnabled();
-            }
-            if (_hideToTrayEnabled)
-            {
-                EnsureTrayIcon();
-            }
-            if (AutostartToggle != null)
-            {
-                AutostartToggle.IsChecked = _autostartEnabled;
-            }
-
-            if (HideToTrayToggle != null)
-            {
-                HideToTrayToggle.IsChecked = _hideToTrayEnabled;
-            }
-        }
-        finally
-        {
-            _suppressSettingsToggle = false;
-        }
-    }
-
     private bool IsAutostartEnabled()
     {
         try
@@ -1707,7 +1772,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            var settings = new AppSettings(_hideToTrayEnabled, _autostartEnabled);
+            var settings = new AppSettings(_hideToTrayEnabled, _autostartEnabled, GetThemeName(), _showAllSections);
             var json = JsonSerializer.Serialize(settings);
             File.WriteAllText(SettingsFilePath, json);
         }
@@ -1716,6 +1781,168 @@ public partial class MainWindow : Window
             _logger.Warning(ex, "Не удалось сохранить настройки");
         }
     }
+
+    private void ApplySectionLayout()
+    {
+        if (SectionNav != null)
+        {
+            SectionNav.Visibility = _showAllSections ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        if (SectionNavContainer != null && SectionNavColumn != null)
+        {
+            if (_showAllSections)
+            {
+                SectionNavContainer.Visibility = Visibility.Collapsed;
+                SectionNavColumn.Width = new GridLength(0);
+                SectionNavColumn.MinWidth = 0;
+            }
+            else
+            {
+                SectionNavContainer.Visibility = Visibility.Visible;
+                SectionNavColumn.Width = GridLength.Auto;
+                SectionNavColumn.MinWidth = 130;
+            }
+        }
+
+        if (_showAllSections)
+        {
+            SystemCard.Visibility = Visibility.Visible;
+            IikoCard.Visibility = Visibility.Visible;
+            ProgramsCard.Visibility = Visibility.Visible;
+            NetworkCard.Visibility = Visibility.Visible;
+            LogsCard.Visibility = Visibility.Visible;
+            FoldersCard.Visibility = Visibility.Visible;
+            PluginsCard.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            SetSectionVisibility(_currentSection);
+        }
+
+        ApplySearch(SearchBox.Text);
+    }
+
+    private void ApplyInitialSettingsToUi()
+    {
+        _suppressSettingsToggle = true;
+        if (AutostartToggle != null)
+        {
+            AutostartToggle.IsChecked = _autostartEnabled;
+        }
+
+        if (HideToTrayToggle != null)
+        {
+            HideToTrayToggle.IsChecked = _hideToTrayEnabled;
+        }
+
+        if (ShowAllSectionsToggle != null)
+        {
+            ShowAllSectionsToggle.IsChecked = _showAllSections;
+        }
+
+        if (ThemeToggle != null)
+        {
+            ThemeToggle.IsChecked = _currentTheme == ThemeVariant.Dark;
+        }
+
+        ApplySectionLayout();
+
+        if (_isFirstRunSettings)
+        {
+            EnsureTrayIcon();
+            SetAutostart(true);
+            SaveAppSettings();
+        }
+        else if (_hideToTrayEnabled)
+        {
+            EnsureTrayIcon();
+        }
+
+        _suppressSettingsToggle = false;
+    }
+
+    private void SetSectionVisibility(Section section)
+    {
+        _currentSection = section;
+        SystemCard.Visibility = section == Section.System ? Visibility.Visible : Visibility.Collapsed;
+        IikoCard.Visibility = section == Section.Iiko ? Visibility.Visible : Visibility.Collapsed;
+        ProgramsCard.Visibility = section == Section.Programs ? Visibility.Visible : Visibility.Collapsed;
+        NetworkCard.Visibility = section == Section.Network ? Visibility.Visible : Visibility.Collapsed;
+        LogsCard.Visibility = section == Section.Logs ? Visibility.Visible : Visibility.Collapsed;
+        FoldersCard.Visibility = section == Section.Folders ? Visibility.Visible : Visibility.Collapsed;
+        PluginsCard.Visibility = section == Section.Plugins ? Visibility.Visible : Visibility.Collapsed;
+        UpdateSectionNavState(section);
+    }
+
+    private void UpdateSectionNavState(Section section)
+    {
+        SystemNavToggle.IsChecked = section == Section.System;
+        NetworkNavToggle.IsChecked = section == Section.Network;
+        IikoNavToggle.IsChecked = section == Section.Iiko;
+        ProgramsNavToggle.IsChecked = section == Section.Programs;
+        LogsNavToggle.IsChecked = section == Section.Logs;
+        FoldersNavToggle.IsChecked = section == Section.Folders;
+        PluginsNavToggle.IsChecked = section == Section.Plugins;
+    }
+
+    private void BuildSectionButtons()
+    {
+        _sectionButtons[Section.System] = ActionsPanel.Children.OfType<Button>().ToList();
+        _sectionButtons[Section.Network] = NetworkActionsPanel.Children.OfType<Button>().ToList();
+        _sectionButtons[Section.Iiko] = IikoActionsPanel.Children.OfType<Button>().ToList();
+        _sectionButtons[Section.Programs] = ProgramsActionsPanel.Children.OfType<Button>().ToList();
+        _sectionButtons[Section.Logs] = LogsActionsPanel.Children.OfType<Button>().ToList();
+        _sectionButtons[Section.Folders] = FoldersActionsPanel.Children.OfType<Button>().ToList();
+        _sectionButtons[Section.Plugins] = new List<Button> { InstallPluginButton };
+    }
+
+    private List<Button> GetButtonsForSection(Section section)
+    {
+        if (_sectionButtons.TryGetValue(section, out var buttons))
+        {
+            return buttons;
+        }
+        return new List<Button>();
+    }
+
+    private void OnSectionNavClicked(object sender, RoutedEventArgs e)
+    {
+        if (_showAllSections) return;
+        if (sender is ToggleButton toggle &&
+            Enum.TryParse<Section>(toggle.Tag?.ToString(), out var section))
+        {
+            SetSectionVisibility(section);
+            ApplySearch(SearchBox.Text);
+        }
+    }
+
+    private void ApplyTheme(ThemeVariant theme)
+    {
+        _currentTheme = theme;
+        var palette = theme == ThemeVariant.Dark ? _darkTheme : _lightTheme;
+        foreach (var pair in palette)
+        {
+            var brush = new SolidColorBrush(pair.Value);
+            Application.Current.Resources[pair.Key] = brush;
+        }
+
+        if (ThemeToggle != null)
+        {
+            ThemeToggle.IsChecked = theme == ThemeVariant.Dark;
+        }
+    }
+
+    private ThemeVariant ParseTheme(string? themeValue)
+    {
+        return string.Equals(themeValue, "dark", StringComparison.OrdinalIgnoreCase)
+            ? ThemeVariant.Dark
+            : ThemeVariant.Light;
+    }
+
+    private string GetThemeName() => _currentTheme == ThemeVariant.Dark ? "dark" : "light";
+
+    private static Color ColorFromHex(string hex) => (Color)ColorConverter.ConvertFromString(hex)!;
 
     private void SetAutostart(bool enable)
     {
@@ -1768,5 +1995,22 @@ public partial class MainWindow : Window
         WindowState = WindowState.Minimized;
     }
 
-    private sealed record AppSettings(bool HideToTray, bool Autostart);
+    private enum Section
+    {
+        System,
+        Network,
+        Iiko,
+        Programs,
+        Logs,
+        Folders,
+        Plugins
+    }
+
+    private enum ThemeVariant
+    {
+        Light,
+        Dark
+    }
+
+    private sealed record AppSettings(bool HideToTray, bool Autostart, string? Theme, bool ShowAllSections);
 }

@@ -143,7 +143,6 @@ internal sealed class UpdateService
 
     private async Task<UpdateInfo?> GetLatestReleaseAsync(CancellationToken cancellationToken)
     {
-        // Сначала пытаемся взять самый свежий релиз из списка (учитываем prerelease), чтобы не зависеть от latest/draft.
         var releasesApi = $"https://api.github.com/repos/{RepoOwner}/{RepoName}/releases?per_page=10";
         try
         {
@@ -176,10 +175,8 @@ internal sealed class UpdateService
         }
         catch
         {
-            // fallback ниже
         }
 
-        // Fallback на /latest если список не получился
         var apiUrl = $"https://api.github.com/repos/{RepoOwner}/{RepoName}/releases/latest";
         using var response = await _httpClient.GetAsync(apiUrl, cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -256,7 +253,6 @@ internal sealed class UpdateService
             cleaned = cleaned[1..];
         }
 
-        // Вырезаем первую подходящую группу цифр (поддержка суффиксов типа -beta)
         var match = System.Text.RegularExpressions.Regex.Match(cleaned, @"\d+(\.\d+){1,3}");
         if (match.Success && Version.TryParse(match.Value, out var parsed))
         {

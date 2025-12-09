@@ -38,7 +38,6 @@ internal sealed class PrintSpoolService
             }
             catch
             {
-                // ignore
             }
         });
     }
@@ -59,7 +58,6 @@ internal sealed class PrintSpoolService
             }
             catch
             {
-                // ignore
             }
         });
     }
@@ -84,13 +82,11 @@ internal sealed class PrintSpoolService
                 }
                 catch
                 {
-                    // ignore
                 }
             }
         }
         catch
         {
-            // ignore
         }
     }
 }

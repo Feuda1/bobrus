@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Windows;
 using System.Threading;
+using System.Text;
 using Application = System.Windows.Application;
 using Bobrus.App.Services;
 using Serilog;
@@ -16,6 +17,7 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         _singleInstanceMutex = new Mutex(initiallyOwned: true, name: MutexName, createdNew: out var isFirstInstance);
         if (!isFirstInstance)
         {
@@ -77,7 +79,6 @@ public partial class App : Application
         }
         catch
         {
-            // ignore
         }
     }
 

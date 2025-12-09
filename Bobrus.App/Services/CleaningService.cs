@@ -48,7 +48,6 @@ internal sealed class CleaningService
             }
             catch
             {
-                // Игнорируем индивидуальные ошибки, продолжаем остальные шаги.
             }
         }
 
@@ -97,7 +96,6 @@ internal sealed class CleaningService
             }
             catch
             {
-                // ignore locked/denied files
             }
         }
 
@@ -120,7 +118,6 @@ internal sealed class CleaningService
             }
             catch
             {
-                // ignore
             }
         }
 
@@ -178,7 +175,6 @@ internal sealed class CleaningService
                     }
                     catch
                     {
-                        // ignore
                     }
                 }
 
@@ -200,7 +196,6 @@ internal sealed class CleaningService
                     }
                     catch
                     {
-                        // ignore
                     }
                 }
             }
@@ -219,7 +214,6 @@ internal sealed class CleaningService
             }
             catch
             {
-                // ignore
             }
 
             return new CleanupResult("Корзина", 0);
@@ -263,7 +257,6 @@ internal sealed class CleaningService
                 }
                 catch
                 {
-                    // ignore
                 }
             }
 

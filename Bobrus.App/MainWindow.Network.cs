@@ -51,6 +51,24 @@ public partial class MainWindow
         SaveAppSettings();
     }
 
+    private void OnShowAllSectionsToggleChanged(object sender, RoutedEventArgs e)
+    {
+        if (_suppressSettingsToggle) return;
+        _showAllSections = ShowAllSectionsToggle.IsChecked == true;
+        ApplySectionLayout();
+        ShowNotification(_showAllSections ? "Общий список включён" : "Разделы разделены по вкладкам", NotificationType.Info);
+        SaveAppSettings();
+    }
+
+    private void OnThemeToggleChanged(object sender, RoutedEventArgs e)
+    {
+        if (_suppressSettingsToggle) return;
+        var theme = ThemeToggle.IsChecked == true ? ThemeVariant.Dark : ThemeVariant.Light;
+        ApplyTheme(theme);
+        ShowNotification(theme == ThemeVariant.Dark ? "Тёмная тема включена" : "Светлая тема включена", NotificationType.Info);
+        SaveAppSettings();
+    }
+
     private void OnNetworkRunPingClicked(object sender, RoutedEventArgs e)
     {
         ClearNetworkOutput();
@@ -114,6 +132,9 @@ public partial class MainWindow
                 CreateNoWindow = true,
                 WorkingDirectory = tempDir
             };
+            var consoleEncoding = GetOemConsoleEncoding();
+            psi.StandardOutputEncoding = consoleEncoding;
+            psi.StandardErrorEncoding = consoleEncoding;
 
             using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
             _networkProcess = process;
@@ -251,32 +272,9 @@ public partial class MainWindow
             };
             if (useOemEncoding)
             {
-                // Пытаемся использовать системную кодировку консоли (учтёт 65001/866/1251), затем запасные варианты.
-                try
-                {
-                    psi.StandardOutputEncoding = Console.OutputEncoding;
-                    psi.StandardErrorEncoding = Console.OutputEncoding;
-                }
-                catch
-                {
-                    try
-                    {
-                        psi.StandardOutputEncoding = Encoding.GetEncoding(866);
-                        psi.StandardErrorEncoding = Encoding.GetEncoding(866);
-                    }
-                    catch
-                    {
-                        try
-                        {
-                            psi.StandardOutputEncoding = Encoding.GetEncoding(1251);
-                            psi.StandardErrorEncoding = Encoding.GetEncoding(1251);
-                        }
-                        catch
-                        {
-                            // оставляем по умолчанию
-                        }
-                    }
-                }
+                var consoleEncoding = GetOemConsoleEncoding();
+                psi.StandardOutputEncoding = consoleEncoding;
+                psi.StandardErrorEncoding = consoleEncoding;
             }
 
             var process = new Process
@@ -310,7 +308,6 @@ public partial class MainWindow
                 await tcs.Task.ContinueWith(_ => Task.CompletedTask);
             }
 
-            // гарантируем, что весь вывод дочитан
             await Task.Run(() => process.WaitForExit());
 
             var exitCode = _networkProcess?.ExitCode ?? -1;
@@ -375,7 +372,6 @@ public partial class MainWindow
         }
         catch
         {
-            // ignore
         }
     }
 
@@ -387,11 +383,25 @@ public partial class MainWindow
         }
         catch
         {
-            // ignore
         }
         finally
         {
             _networkProcess = null;
+        }
+    }
+
+    private static Encoding GetOemConsoleEncoding()
+    {
+        try
+        {
+            var codePage = CultureInfo.CurrentCulture.TextInfo.OEMCodePage;
+            return Encoding.GetEncoding(codePage);
+        }
+        catch
+        {
+            try { return Encoding.GetEncoding(866); } catch { }
+            try { return Encoding.GetEncoding(1251); } catch { }
+            return Encoding.UTF8;
         }
     }
 }

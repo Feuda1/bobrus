@@ -105,7 +105,6 @@ internal static class UpdateInstaller
         }
         catch
         {
-            // Процесс уже завершился или не найден.
         }
 
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
