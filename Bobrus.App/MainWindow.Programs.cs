@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -27,10 +28,9 @@ public partial class MainWindow
     private const string AdvancedIpScannerUrl = "https://download.advanced-ip-scanner.com/download/files/Advanced_IP_Scanner_2.5.4594.1.exe";
     private const string AnyDeskUrl = "https://download.anydesk.com/AnyDesk.exe";
     private const string AssistantUrl = "https://мойассистент.рф/%D1%81%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C/Download/1369";
-    private const string ComPortCheckerUrl = "https://atol-kassa.ru/wp-content/nfiles/files/ATOL/soft/zx/comportchecker/ComPortChecker%201.1.zip";
+    private const string ComPortCheckerUrl = "https://github.com/Feuda1/Programs-for-Bobrik/releases/download/v1.0.0/ComPortChecker.1.1.zip";
     private const string DatabaseNetUrl = "https://fishcodelib.com/files/DatabaseNet4.zip";
-    private const string Notepad64Url = "https://release-assets.githubusercontent.com/github-production-release-asset/33014811/71731d1b-bd3e-4ad8-9835-cdda378f5599?sp=r&sv=2018-11-09&sr=b&spr=https&se=2025-12-05T13%3A45%3A24Z&rscd=attachment%3B+filename%3Dnpp.8.8.8.Installer.x64.exe&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2025-12-05T12%3A44%3A36Z&ske=2025-12-05T13%3A45%3A24Z&sks=b&skv=2018-11-09&sig=SkNxkKmXjHFgF7C3dJgYiypnLAS5qGhvzAIk2Y8KdOQ%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc2NDkzODk3NiwibmJmIjoxNzY0OTM4Njc2LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ._rVBza1bwdykfIJn9PlAJKnHmX9-PudsuEm6WnWHcPQ&response-content-disposition=attachment%3B%20filename%3Dnpp.8.8.8.Installer.x64.exe&response-content-type=application%2Foctet-stream";
-    private const string Notepad32Url = "https://release-assets.githubusercontent.com/github-production-release-asset/33014811/c7fc9bf4-e8ea-4031-9e7d-af0356f0a2a3?sp=r&sv=2018-11-09&sr=b&spr=https&se=2025-12-05T13%3A38%3A07Z&rscd=attachment%3B+filename%3Dnpp.8.8.8.Installer.exe&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2025-12-05T12%3A37%3A27Z&ske=2025-12-05T13%3A38%3A07Z&sks=b&skv=2018-11-09&sig=kwBJInyIdoNPYH635oZJ%2BjPIerZhGfWI0lfxmfO%2Bayw%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc2NDkzODk3OCwibmJmIjoxNzY0OTM4Njc4LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.CT129pSJFIytToDoZuSA77cgUvLnXWmNRS7IremhSLg&response-content-disposition=attachment%3B%20filename%3Dnpp.8.8.8.Installer.exe&response-content-type=application%2Foctet-stream";
+    private const string NotepadUrl = "https://github.com/Feuda1/Programs-for-Bobrik/releases/download/v1.0.0/npp.8.8.2.Installer.x64.exe";
     private const string PrinterTestUrl = "https://725920.selcdn.ru/upload_portkkm/iblock/929/9291b0d0c76c7c5756b81732df929086/Printer-TEST-V3.1C.zip";
     private const string RhelperUrl = "https://github.com/Feuda1/Programs-for-Bobrik/releases/download/v1.0.0/remote-access-setup.exe";
     private const string OrderCheckUrl = "https://clearbat.iiko.online/downloads/OrderCheck.exe";
@@ -58,18 +58,8 @@ public partial class MainWindow
     private async void OnDatabaseNetClicked(object sender, RoutedEventArgs e) =>
         await DownloadProgramAsync("Database Net", DatabaseNetUrl, DatabaseNetButton, handling: ProgramHandling.ExtractAndRevealFolder);
 
-    private void OnNotepadClicked(object sender, RoutedEventArgs e)
-    {
-        ShowProgramOptions(NotepadButton,
-            new ProgramOption("Notepad++ 64-bit", () => DownloadProgramAsync("Notepad++ 64-bit", Notepad64Url, NotepadButton, handling: ProgramHandling.RunInstallerThenReveal)),
-            new ProgramOption("Notepad++ 32-bit", () => DownloadProgramAsync("Notepad++ 32-bit", Notepad32Url, NotepadButton, handling: ProgramHandling.RunInstallerThenReveal)));
-    }
-
-    private async void OnNotepad64Clicked(object sender, RoutedEventArgs e) =>
-        await DownloadProgramAsync("Notepad++ 64-bit", Notepad64Url, NotepadButton, handling: ProgramHandling.RunInstallerThenReveal);
-
-    private async void OnNotepad32Clicked(object sender, RoutedEventArgs e) =>
-        await DownloadProgramAsync("Notepad++ 32-bit", Notepad32Url, NotepadButton, handling: ProgramHandling.RunInstallerThenReveal);
+    private void OnNotepadClicked(object sender, RoutedEventArgs e) =>
+        _ = DownloadProgramAsync("Notepad++", NotepadUrl, NotepadButton, handling: ProgramHandling.RunInstallerThenReveal);
 
     private async void OnPrinterTestClicked(object sender, RoutedEventArgs e) =>
         await DownloadProgramAsync("Printer Test V3.1C", PrinterTestUrl, PrinterTestButton, handling: ProgramHandling.ExtractAndRevealFolder);
@@ -161,6 +151,8 @@ public partial class MainWindow
 
             var revealPath = destination;
             var selectFile = true;
+            var startInstallerAfterReveal = false;
+            var installerPath = destination;
 
             switch (handling)
             {
@@ -180,13 +172,20 @@ public partial class MainWindow
                     }
                     break;
                 case ProgramHandling.RunInstallerThenReveal:
-                    StartInstaller(destination, displayName);
+                    startInstallerAfterReveal = true;
+                    installerPath = destination;
                     break;
                 default:
                     break;
             }
 
             OpenFileInExplorer(revealPath, selectFile);
+
+            if (startInstallerAfterReveal)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(1500));
+                StartInstaller(installerPath, displayName);
+            }
         }
         catch (Exception ex)
         {
@@ -502,6 +501,8 @@ public partial class MainWindow
     {
         try
         {
+            EnsureDownloadsShortcutExists();
+
             var psi = new ProcessStartInfo
             {
                 FileName = path,
@@ -517,6 +518,48 @@ public partial class MainWindow
         {
             _logger.Error(ex, "Не удалось запустить установщик {Name}", displayName);
             ShowNotification($"Не удалось запустить {displayName}: {ex.Message}", NotificationType.Error);
+        }
+    }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "COM-based shortcut creation is not used in trimmed deployments.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "ProgID activation for WScript.Shell is runtime-only and not trimmed.")]
+    private void EnsureDownloadsShortcutExists()
+    {
+        try
+        {
+            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            if (string.IsNullOrWhiteSpace(desktop))
+            {
+                return;
+            }
+
+            var shortcutPath = Path.Combine(desktop, "Bobrus downloads.lnk");
+            if (File.Exists(shortcutPath))
+            {
+                return;
+            }
+
+            var shellType = Type.GetTypeFromProgID("WScript.Shell");
+            if (shellType == null)
+            {
+                _logger.Warning("Не удалось получить WScript.Shell для создания ярлыка загрузок");
+                return;
+            }
+
+            Directory.CreateDirectory(AppPaths.DownloadsDirectory);
+
+            dynamic shell = Activator.CreateInstance(shellType)!;
+            dynamic shortcut = shell.CreateShortcut(shortcutPath);
+            shortcut.TargetPath = AppPaths.DownloadsDirectory;
+            shortcut.WorkingDirectory = AppPaths.DownloadsDirectory;
+            shortcut.Description = "Папка загрузок Bobrus";
+            shortcut.Save();
+
+            _logger.Information("Создан ярлык загрузок: {Path}", shortcutPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Не удалось создать ярлык на папку загрузок");
         }
     }
 
@@ -544,6 +587,11 @@ public partial class MainWindow
     {
         try
         {
+            if (!ShouldOpenExplorer(path, selectFile))
+            {
+                return;
+            }
+
             if (selectFile)
             {
                 if (!File.Exists(path))
@@ -581,6 +629,109 @@ public partial class MainWindow
             _logger.Error(ex, "Не удалось открыть проводник для {Path}", path);
             ShowNotification($"Не удалось открыть папку: {ex.Message}", NotificationType.Error);
         }
+    }
+
+    private bool ShouldOpenExplorer(string path, bool selectFile)
+    {
+        var targetFolder = selectFile ? Path.GetDirectoryName(path) : path;
+        if (string.IsNullOrWhiteSpace(targetFolder))
+        {
+            return true;
+        }
+
+        if (IsInDownloads(targetFolder))
+        {
+            if (IsExplorerWindowOpenForPath(_downloadDirectory))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private bool IsInDownloads(string folderPath)
+    {
+        try
+        {
+            var downloadsFull = Path.GetFullPath(_downloadDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            var targetFull = Path.GetFullPath(folderPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            return targetFull.StartsWith(downloadsFull, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "COM automation for Explorer only on Windows desktop.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "Shell.Application has a public parameterless constructor in Windows.")]
+    private bool IsExplorerWindowOpenForPath(string folderPath)
+    {
+        try
+        {
+            var shellType = Type.GetTypeFromProgID("Shell.Application");
+            if (shellType is null)
+            {
+                return false;
+            }
+
+            dynamic? shell = Activator.CreateInstance(shellType);
+            dynamic? windows = shell?.Windows();
+            if (windows is null)
+            {
+                return false;
+            }
+
+            var target = Path.GetFullPath(folderPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+
+            for (int i = 0; i < windows.Count; i++)
+            {
+                dynamic? window = null;
+                try
+                {
+                    window = windows.Item(i);
+                }
+                catch
+                {
+                }
+
+                if (window is null)
+                {
+                    continue;
+                }
+
+                string? location = null;
+                try
+                {
+                    location = window.LocationURL;
+                }
+                catch
+                {
+                }
+
+                if (string.IsNullOrWhiteSpace(location))
+                {
+                    continue;
+                }
+
+                if (!Uri.TryCreate(location, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeFile)
+                {
+                    continue;
+                }
+
+                var windowPath = Uri.UnescapeDataString(uri.LocalPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+                if (windowPath.Equals(target, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        return false;
     }
 
     private void CreateRhelperPasswordFile(string downloadedPath)

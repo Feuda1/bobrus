@@ -60,6 +60,15 @@ public partial class MainWindow
         SaveAppSettings();
     }
 
+    private void OnConsoleToggleChanged(object sender, RoutedEventArgs e)
+    {
+        if (_suppressSettingsToggle) return;
+        _consoleVisible = ConsoleToggle.IsChecked != false;
+        ApplyConsoleVisibility();
+        ShowNotification(_consoleVisible ? "Журнал включён" : "Журнал скрыт", NotificationType.Info);
+        SaveAppSettings();
+    }
+
     private void OnThemeToggleChanged(object sender, RoutedEventArgs e)
     {
         if (_suppressSettingsToggle) return;

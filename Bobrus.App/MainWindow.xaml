@@ -165,7 +165,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="SectionNavColumn" Width="Auto" MinWidth="0" />
                 <ColumnDefinition Width="3*" MinWidth="360" />
-                <ColumnDefinition Width="1*" MinWidth="200" MaxWidth="320" />
+                <ColumnDefinition x:Name="ConsoleColumn" Width="1*" MinWidth="200" MaxWidth="320" />
             </Grid.ColumnDefinitions>
 
             <Border x:Name="SectionNavContainer"
@@ -251,6 +251,7 @@
                                     <Button x:Name="TouchToggleButton"
                                             Content="Сенсор: проверка..."
                                             Style="{StaticResource FunctionButton}"
+                                            MinWidth="180"
                                             Margin="0 12 12 12"
                                             Click="OnTouchToggleClicked"
                                             Tag="сенсор touch включить отключить тач тачскрин экран дисплей multitouch сенсорный" />
@@ -801,7 +802,8 @@
                 </ScrollViewer>
 
             <!-- Log panel -->
-            <Border Style="{StaticResource CardBorder}"
+            <Border x:Name="ConsolePanel"
+                    Style="{StaticResource CardBorder}"
                     Grid.Column="2"
                     Padding="12"
                     Margin="8 0 0 0"
@@ -1091,6 +1093,12 @@
                                           Margin="0 0 0 8"
                                           Checked="OnShowAllSectionsToggleChanged"
                                           Unchecked="OnShowAllSectionsToggleChanged" />
+                                <CheckBox x:Name="ConsoleToggle"
+                                          Content="Показывать журнал"
+                                          Style="{StaticResource ToggleCheckBox}"
+                                          Margin="0 0 0 8"
+                                          Checked="OnConsoleToggleChanged"
+                                          Unchecked="OnConsoleToggleChanged" />
                                 <CheckBox x:Name="ThemeToggle"
                                           Content="Использовать тёмную тему"
                                           Style="{StaticResource ToggleCheckBox}"

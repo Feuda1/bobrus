@@ -62,8 +62,14 @@ public partial class MainWindow : Window
     private bool _updateCheckInProgress;
     private Timer? _autoUpdateTimer;
     private bool _showAllSections;
+    private bool _consoleVisible;
+    private double _restoreLeft;
+    private double _restoreTop;
+    private double _restoreWidth;
+    private double _restoreHeight;
     private Section _currentSection = Section.System;
     private readonly Dictionary<Section, List<Button>> _sectionButtons = new();
+    private readonly Dictionary<Button, string> _buttonSearchIndex = new();
     private ThemeVariant _currentTheme = ThemeVariant.Light;
     private readonly bool _isFirstRunSettings;
     private readonly Dictionary<string, Color> _lightTheme = new()
@@ -138,6 +144,8 @@ public partial class MainWindow : Window
         ["NavButtonActiveBorderBrush"] = ColorFromHex("#34517A")
     };
     private const string StartHiddenArg = "--start-hidden";
+    private const double ConsoleColumnMinWidth = 200;
+    private const double ConsoleColumnMaxWidth = 320;
     private string SettingsFilePath => Path.Combine(AppPaths.AppDataRoot, "settings.json");
     private const string IikoFrontExePath = @"C:\Program Files\iiko\iikoRMS\Front.Net\iikoFront.Net.exe";
     private const string IikoCardUrl = "https://iiko.biz/ru-RU/About/DownloadPosInstaller?useRc=False";
@@ -155,12 +163,16 @@ public partial class MainWindow : Window
         _hideToTrayEnabled = settings?.HideToTray ?? true;
         _autostartEnabled = settings?.Autostart ?? true;
         _showAllSections = settings?.ShowAllSections ?? false;
+        _consoleVisible = settings?.ShowConsole ?? true;
         _currentTheme = ParseTheme(settings?.Theme);
         _isFirstRunSettings = settings is null;
 
         ApplyTheme(_currentTheme);
 
         InitializeComponent();
+        CaptureRestoreBounds();
+        LocationChanged += OnWindowLocationChanged;
+        SizeChanged += OnWindowSizeChanged;
         _updateService = new UpdateService(_httpClient);
         VersionText.Text = $"v{_updateService.CurrentVersion.ToString(3)}";
         _logger.Information("Bobrus запущен. Текущая версия {Version}", _updateService.CurrentVersion);
@@ -242,6 +254,7 @@ public partial class MainWindow : Window
             .Concat(FoldersActionsPanel.Children.OfType<Button>())
             .ToList();
         BuildSectionButtons();
+        RebuildSearchIndex();
         await RefreshTouchStateAsync();
         StartAutoUpdateTimer();
         ApplyStartHidden();
@@ -344,6 +357,8 @@ public partial class MainWindow : Window
 
     private void OnUiLog(LogEvent logEvent)
     {
+        if (!_consoleVisible) return;
+
         Dispatcher.InvokeAsync(() =>
         {
             var paragraph = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 0, 0, 4) };
@@ -420,6 +435,8 @@ public partial class MainWindow : Window
         var button = (Button)sender;
         button.IsEnabled = false;
         button.Content = "Перезапуск...";
+        var toggleWasEnabled = TouchToggleButton.IsEnabled;
+        TouchToggleButton.IsEnabled = false;
         try
         {
             var ok = await _touchManager.RestartTouchAsync();
@@ -430,6 +447,8 @@ public partial class MainWindow : Window
             else
             {
                 ShowNotification("Сенсор перезапущен", NotificationType.Success);
+                _isTouchEnabled = true;
+                UpdateTouchButtonVisual();
                 await RefreshTouchStateAsync();
             }
         }
@@ -442,6 +461,7 @@ public partial class MainWindow : Window
         {
             button.Content = "Перезапуск сенсора";
             button.IsEnabled = true;
+            TouchToggleButton.IsEnabled = toggleWasEnabled;
         }
     }
 
@@ -541,7 +561,7 @@ public partial class MainWindow : Window
     private void ApplySearch(string query)
     {
         var q = (query ?? string.Empty).Trim().ToLowerInvariant();
-        var targetButtons = _showAllSections ? _actionButtons : GetButtonsForSection(_currentSection);
+        var targetButtons = _actionButtons;
 
         if (q.Length == 0)
         {
@@ -570,20 +590,20 @@ public partial class MainWindow : Window
 
         foreach (var btn in targetButtons)
         {
-            var text = $"{btn.Content} {btn.Tag}".ToString().ToLowerInvariant();
+            var text = GetSearchIndex(btn);
             btn.Visibility = text.Contains(q) ? Visibility.Visible : Visibility.Collapsed;
         }
 
+        var systemVisible = HasVisibleButtons(ActionsPanel);
+        var iikoVisible = HasVisibleButtons(IikoActionsPanel);
+        var programsVisible = HasVisibleButtons(ProgramsActionsPanel);
+        var networkVisible = HasVisibleButtons(NetworkActionsPanel);
+        var logsVisible = HasVisibleButtons(LogsActionsPanel);
+        var foldersVisible = HasVisibleButtons(FoldersActionsPanel);
+        var pluginsVisible = true;
+
         if (_showAllSections)
         {
-            var systemVisible = ActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
-            var iikoVisible = IikoActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
-            var programsVisible = ProgramsActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
-            var networkVisible = NetworkActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
-            var logsVisible = LogsActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
-            var foldersVisible = FoldersActionsPanel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
-            var pluginsVisible = true;
-
             SystemCard.Visibility = systemVisible ? Visibility.Visible : Visibility.Collapsed;
             IikoCard.Visibility = iikoVisible ? Visibility.Visible : Visibility.Collapsed;
             ProgramsCard.Visibility = programsVisible ? Visibility.Visible : Visibility.Collapsed;
@@ -594,8 +614,90 @@ public partial class MainWindow : Window
         }
         else
         {
-            SetSectionVisibility(_currentSection);
+            SystemCard.Visibility = systemVisible ? Visibility.Visible : Visibility.Collapsed;
+            IikoCard.Visibility = iikoVisible ? Visibility.Visible : Visibility.Collapsed;
+            ProgramsCard.Visibility = programsVisible ? Visibility.Visible : Visibility.Collapsed;
+            NetworkCard.Visibility = networkVisible ? Visibility.Visible : Visibility.Collapsed;
+            LogsCard.Visibility = logsVisible ? Visibility.Visible : Visibility.Collapsed;
+            FoldersCard.Visibility = foldersVisible ? Visibility.Visible : Visibility.Collapsed;
+            PluginsCard.Visibility = pluginsVisible ? Visibility.Visible : Visibility.Collapsed;
         }
+    }
+
+    private static bool HasVisibleButtons(System.Windows.Controls.Panel panel) => panel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
+
+    private void RebuildSearchIndex()
+    {
+        _buttonSearchIndex.Clear();
+        foreach (var button in _actionButtons)
+        {
+            _buttonSearchIndex[button] = BuildSearchIndex(button);
+        }
+    }
+
+    private string GetSearchIndex(Button button)
+    {
+        if (_buttonSearchIndex.TryGetValue(button, out var cached))
+        {
+            return cached;
+        }
+
+        var built = BuildSearchIndex(button);
+        _buttonSearchIndex[button] = built;
+        return built;
+    }
+
+    private string BuildSearchIndex(Button button)
+    {
+        var baseText = $"{button.Content} {button.Tag}".ToLowerInvariant();
+        var compact = RemoveSeparators(baseText);
+        var extras = GetExtraKeywords(button);
+        return string.Join(' ', new[] { baseText, compact, extras }).Trim();
+    }
+
+    private static string RemoveSeparators(string text)
+    {
+        var chars = text.Where(c => !char.IsWhiteSpace(c) && c != '-' && c != '_' && c != '.').ToArray();
+        return new string(chars);
+    }
+
+    private string GetExtraKeywords(Button button)
+    {
+        var content = (button.Content?.ToString() ?? string.Empty).ToLowerInvariant();
+        var tag = (button.Tag?.ToString() ?? string.Empty).ToLowerInvariant();
+        var builder = new List<string>();
+
+        if (content.Contains("iiko") || tag.Contains("iiko") || content.Contains("front"))
+        {
+            builder.Add("айко айка айкофронт айкафронт фронт iikofront iikofront frontnet иикофронт айко фронт айка фронт");
+        }
+
+        if (content.Contains("плаги") || tag.Contains("plugin"))
+        {
+            builder.Add("plugin plugins плагин плагины модуль моды расширения экстеншн");
+        }
+
+        if (content.Contains("лог") || tag.Contains("log"))
+        {
+            builder.Add("журнал лог файллога logs логфайл log file");
+        }
+
+        if (content.Contains("очист") || tag.Contains("cleanup"))
+        {
+            builder.Add("clean clear почистить удалить мусор temp кеш cache tempfiles");
+        }
+
+        if (content.Contains("сеть") || tag.Contains("network"))
+        {
+            builder.Add("интернет ip сеть сетевой сетка вайфай wifi ethernet lan wan");
+        }
+
+        if (content.Contains("обнов") || tag.Contains("update"))
+        {
+            builder.Add("обновление update апдейт апд");
+        }
+
+        return string.Join(' ', builder);
     }
 
     private async void OnRestartPrintSpoolerClicked(object sender, RoutedEventArgs e)
@@ -1163,8 +1265,17 @@ public partial class MainWindow : Window
 
         WindowState = WindowState.Normal;
 
-        Left = screenPos.X - (RestoreBounds.Width * percentX);
-        Top = screenPos.Y - (RestoreBounds.Height * percentY);
+        var targetWidth = _restoreWidth > 0 ? _restoreWidth : RestoreBounds.Width;
+        var targetHeight = _restoreHeight > 0 ? _restoreHeight : RestoreBounds.Height;
+
+        if (targetWidth > 0 && targetHeight > 0)
+        {
+            Width = targetWidth;
+            Height = targetHeight;
+        }
+
+        Left = screenPos.X - (targetWidth * percentX);
+        Top = screenPos.Y - (targetHeight * percentY);
 
         Dispatcher.BeginInvoke(new Action(() =>
         {
@@ -1192,6 +1303,23 @@ public partial class MainWindow : Window
         }
 
         return false;
+    }
+
+    private void OnWindowLocationChanged(object? sender, EventArgs e) => CaptureRestoreBounds();
+
+    private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e) => CaptureRestoreBounds();
+
+    private void CaptureRestoreBounds()
+    {
+        if (WindowState != WindowState.Normal)
+        {
+            return;
+        }
+
+        _restoreWidth = ActualWidth > 0 ? ActualWidth : Width;
+        _restoreHeight = ActualHeight > 0 ? ActualHeight : Height;
+        _restoreLeft = double.IsNaN(Left) ? RestoreBounds.Left : Left;
+        _restoreTop = double.IsNaN(Top) ? RestoreBounds.Top : Top;
     }
 
     private void OnMinimizeClicked(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
@@ -1772,7 +1900,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            var settings = new AppSettings(_hideToTrayEnabled, _autostartEnabled, GetThemeName(), _showAllSections);
+            var settings = new AppSettings(_hideToTrayEnabled, _autostartEnabled, GetThemeName(), _showAllSections, _consoleVisible);
             var json = JsonSerializer.Serialize(settings);
             File.WriteAllText(SettingsFilePath, json);
         }
@@ -1823,6 +1951,30 @@ public partial class MainWindow : Window
         ApplySearch(SearchBox.Text);
     }
 
+    private void ApplyConsoleVisibility()
+    {
+        if (ConsolePanel != null)
+        {
+            ConsolePanel.Visibility = _consoleVisible ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        if (ConsoleColumn != null)
+        {
+            if (_consoleVisible)
+            {
+                ConsoleColumn.Width = new GridLength(1, GridUnitType.Star);
+                ConsoleColumn.MinWidth = ConsoleColumnMinWidth;
+                ConsoleColumn.MaxWidth = ConsoleColumnMaxWidth;
+            }
+            else
+            {
+                ConsoleColumn.Width = new GridLength(0);
+                ConsoleColumn.MinWidth = 0;
+                ConsoleColumn.MaxWidth = 0;
+            }
+        }
+    }
+
     private void ApplyInitialSettingsToUi()
     {
         _suppressSettingsToggle = true;
@@ -1841,12 +1993,18 @@ public partial class MainWindow : Window
             ShowAllSectionsToggle.IsChecked = _showAllSections;
         }
 
+        if (ConsoleToggle != null)
+        {
+            ConsoleToggle.IsChecked = _consoleVisible;
+        }
+
         if (ThemeToggle != null)
         {
             ThemeToggle.IsChecked = _currentTheme == ThemeVariant.Dark;
         }
 
         ApplySectionLayout();
+        ApplyConsoleVisibility();
 
         if (_isFirstRunSettings)
         {
@@ -2012,5 +2170,5 @@ public partial class MainWindow : Window
         Dark
     }
 
-    private sealed record AppSettings(bool HideToTray, bool Autostart, string? Theme, bool ShowAllSections);
+    private sealed record AppSettings(bool HideToTray, bool Autostart, string? Theme, bool ShowAllSections, bool ShowConsole);
 }
