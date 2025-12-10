@@ -156,6 +156,18 @@ public partial class MainWindow : Window
     private bool? _isTouchEnabled;
     private List<Button> _actionButtons = new();
 
+    // Кэшированные ресурсы для производительности
+    private Brush? _cachedTextSecondaryBrush;
+    private Brush? _cachedDangerBrush;
+    private Brush? _cachedAccentBrush;
+    private Brush? _cachedTextPrimaryBrush;
+    private static readonly SolidColorBrush AccentOrangeBrush = new(Color.FromRgb(0xE7, 0xA0, 0x4F));
+    private Style? _cachedDangerButtonStyle;
+    private Style? _cachedPrimaryButtonStyle;
+    private Style? _cachedBaseButtonStyle;
+    private CancellationTokenSource? _searchDebounceToken;
+    private const int MaxLogEntries = 200;
+
     public MainWindow()
     {
         var settings = LoadAppSettings();
@@ -169,6 +181,7 @@ public partial class MainWindow : Window
         ApplyTheme(_currentTheme);
 
         InitializeComponent();
+        CacheResources();
         CaptureRestoreBounds();
         LocationChanged += OnWindowLocationChanged;
         SizeChanged += OnWindowSizeChanged;
@@ -178,6 +191,17 @@ public partial class MainWindow : Window
         _startHidden = Environment.GetCommandLineArgs().Any(a => string.Equals(a, StartHiddenArg, StringComparison.OrdinalIgnoreCase));
         ApplyInitialSettingsToUi();
         Loaded += OnLoaded;
+    }
+
+    private void CacheResources()
+    {
+        _cachedTextSecondaryBrush = FindResource("TextSecondaryBrush") as Brush ?? Brushes.Gray;
+        _cachedDangerBrush = FindResource("DangerBrush") as Brush ?? Brushes.Red;
+        _cachedAccentBrush = FindResource("AccentBrush") as Brush ?? Brushes.LimeGreen;
+        _cachedTextPrimaryBrush = FindResource("TextPrimaryBrush") as Brush ?? Brushes.White;
+        _cachedDangerButtonStyle = FindResource("DangerButton") as Style;
+        _cachedPrimaryButtonStyle = FindResource("PrimaryButton") as Style;
+        _cachedBaseButtonStyle = FindResource("BaseButton") as Style;
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -303,7 +327,7 @@ public partial class MainWindow : Window
         TouchToggleButton.IsEnabled = false;
         RestartTouchButton.IsEnabled = false;
         TouchToggleButton.Content = "Сенсор: проверка...";
-        TouchToggleButton.Style = FindResource("BaseButton") as Style;
+        TouchToggleButton.Style = _cachedBaseButtonStyle;
 
         var devices = await _touchManager.GetTouchDevicesAsync();
         LogTouchDevices(devices, "initial");
@@ -361,16 +385,26 @@ public partial class MainWindow : Window
         LogRichTextBox.Document.Blocks.Add(new System.Windows.Documents.Paragraph());
     }
 
+    private static readonly Regex LogHighlightPattern = new(@"\d[\d\s]*байт|начало", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    private static readonly Thickness LogParagraphMargin = new(0, 0, 0, 4);
+
     private void OnUiLog(LogEvent logEvent)
     {
         if (!_consoleVisible) return;
 
         Dispatcher.InvokeAsync(() =>
         {
-            var paragraph = new System.Windows.Documents.Paragraph { Margin = new Thickness(0, 0, 0, 4) };
+            // Ограничиваем количество логов для производительности
+            var blocks = LogRichTextBox.Document.Blocks;
+            while (blocks.Count >= MaxLogEntries)
+            {
+                blocks.Remove(blocks.FirstBlock);
+            }
+
+            var paragraph = new System.Windows.Documents.Paragraph { Margin = LogParagraphMargin };
             var timeRun = new System.Windows.Documents.Run($"[{logEvent.Timestamp:HH:mm:ss}] ")
             {
-                Foreground = FindResource("TextSecondaryBrush") as Brush ?? Brushes.Gray
+                Foreground = _cachedTextSecondaryBrush
             };
 
             paragraph.Inlines.Add(timeRun);
@@ -378,48 +412,40 @@ public partial class MainWindow : Window
             {
                 paragraph.Inlines.Add(inline);
             }
-            LogRichTextBox.Document.Blocks.Add(paragraph);
+            blocks.Add(paragraph);
             LogRichTextBox.ScrollToEnd();
         }, DispatcherPriority.Background);
     }
 
     private IEnumerable<System.Windows.Documents.Inline> BuildMessageInlines(LogEvent logEvent)
     {
-        var danger = FindResource("DangerBrush") as Brush ?? Brushes.Red;
-        var accentOrange = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E7A04F"));
-        var accentGreen = FindResource("AccentBrush") as Brush ?? Brushes.LimeGreen;
-        var info = FindResource("TextPrimaryBrush") as Brush ?? Brushes.White;
-        var secondary = FindResource("TextSecondaryBrush") as Brush ?? Brushes.Gray;
-
         var message = logEvent.RenderMessage();
         if (logEvent.Level == LogEventLevel.Error || logEvent.Level == LogEventLevel.Fatal)
         {
             yield return new System.Windows.Documents.Run(message)
             {
-                Foreground = danger,
+                Foreground = _cachedDangerBrush,
                 FontWeight = FontWeights.SemiBold
             };
             yield break;
         }
 
-        var baseBrush = accentOrange;
-        var pattern = new Regex(@"\d[\d\s]*байт|начало", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         var lastIndex = 0;
-        foreach (Match match in pattern.Matches(message))
+        foreach (Match match in LogHighlightPattern.Matches(message))
         {
             if (match.Index > lastIndex)
             {
                 var text = message.Substring(lastIndex, match.Index - lastIndex);
                 yield return new System.Windows.Documents.Run(text)
                 {
-                    Foreground = baseBrush
+                    Foreground = AccentOrangeBrush
                 };
             }
 
             var highlightText = match.Value;
             yield return new System.Windows.Documents.Run(highlightText)
             {
-                Foreground = accentGreen,
+                Foreground = _cachedAccentBrush,
                 FontWeight = FontWeights.SemiBold
             };
 
@@ -431,7 +457,7 @@ public partial class MainWindow : Window
             var tail = message.Substring(lastIndex);
             yield return new System.Windows.Documents.Run(tail)
             {
-                Foreground = baseBrush
+                Foreground = AccentOrangeBrush
             };
         }
     }
@@ -528,7 +554,19 @@ public partial class MainWindow : Window
 
     private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
     {
-        ApplySearch(SearchBox.Text);
+        // Debouncing для производительности на слабых ПК
+        _searchDebounceToken?.Cancel();
+        _searchDebounceToken = new CancellationTokenSource();
+        var token = _searchDebounceToken.Token;
+        var searchText = SearchBox.Text;
+
+        Task.Delay(150, token).ContinueWith(_ =>
+        {
+            if (!token.IsCancellationRequested)
+            {
+                Dispatcher.Invoke(() => ApplySearch(searchText));
+            }
+        }, token, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
     }
 
     private void OnSearchKeyDown(object sender, KeyEventArgs e)
@@ -550,18 +588,18 @@ public partial class MainWindow : Window
         {
             foreach (var btn in targetButtons)
             {
-                btn.Visibility = Visibility.Visible;
+                SetVisibilityIfChanged(btn, Visibility.Visible);
             }
 
             if (_showAllSections)
             {
-                SystemCard.Visibility = Visibility.Visible;
-                IikoCard.Visibility = Visibility.Visible;
-                ProgramsCard.Visibility = Visibility.Visible;
-                NetworkCard.Visibility = Visibility.Visible;
-                LogsCard.Visibility = Visibility.Visible;
-                FoldersCard.Visibility = Visibility.Visible;
-                PluginsCard.Visibility = Visibility.Visible;
+                SetVisibilityIfChanged(SystemCard, Visibility.Visible);
+                SetVisibilityIfChanged(IikoCard, Visibility.Visible);
+                SetVisibilityIfChanged(ProgramsCard, Visibility.Visible);
+                SetVisibilityIfChanged(NetworkCard, Visibility.Visible);
+                SetVisibilityIfChanged(LogsCard, Visibility.Visible);
+                SetVisibilityIfChanged(FoldersCard, Visibility.Visible);
+                SetVisibilityIfChanged(PluginsCard, Visibility.Visible);
             }
             else
             {
@@ -574,40 +612,41 @@ public partial class MainWindow : Window
         foreach (var btn in targetButtons)
         {
             var text = GetSearchIndex(btn);
-            btn.Visibility = text.Contains(q) ? Visibility.Visible : Visibility.Collapsed;
+            var newVisibility = text.Contains(q) ? Visibility.Visible : Visibility.Collapsed;
+            SetVisibilityIfChanged(btn, newVisibility);
         }
 
-        var systemVisible = HasVisibleButtons(ActionsPanel);
-        var iikoVisible = HasVisibleButtons(IikoActionsPanel);
-        var programsVisible = HasVisibleButtons(ProgramsActionsPanel);
-        var networkVisible = HasVisibleButtons(NetworkActionsPanel);
-        var logsVisible = HasVisibleButtons(LogsActionsPanel);
-        var foldersVisible = HasVisibleButtons(FoldersActionsPanel);
-        var pluginsVisible = true;
+        var systemVisible = HasVisibleButtonsFast(ActionsPanel);
+        var iikoVisible = HasVisibleButtonsFast(IikoActionsPanel);
+        var programsVisible = HasVisibleButtonsFast(ProgramsActionsPanel);
+        var networkVisible = HasVisibleButtonsFast(NetworkActionsPanel);
+        var logsVisible = HasVisibleButtonsFast(LogsActionsPanel);
+        var foldersVisible = HasVisibleButtonsFast(FoldersActionsPanel);
 
-        if (_showAllSections)
-        {
-            SystemCard.Visibility = systemVisible ? Visibility.Visible : Visibility.Collapsed;
-            IikoCard.Visibility = iikoVisible ? Visibility.Visible : Visibility.Collapsed;
-            ProgramsCard.Visibility = programsVisible ? Visibility.Visible : Visibility.Collapsed;
-            NetworkCard.Visibility = networkVisible ? Visibility.Visible : Visibility.Collapsed;
-            LogsCard.Visibility = logsVisible ? Visibility.Visible : Visibility.Collapsed;
-            FoldersCard.Visibility = foldersVisible ? Visibility.Visible : Visibility.Collapsed;
-            PluginsCard.Visibility = pluginsVisible ? Visibility.Visible : Visibility.Collapsed;
-        }
-        else
-        {
-            SystemCard.Visibility = systemVisible ? Visibility.Visible : Visibility.Collapsed;
-            IikoCard.Visibility = iikoVisible ? Visibility.Visible : Visibility.Collapsed;
-            ProgramsCard.Visibility = programsVisible ? Visibility.Visible : Visibility.Collapsed;
-            NetworkCard.Visibility = networkVisible ? Visibility.Visible : Visibility.Collapsed;
-            LogsCard.Visibility = logsVisible ? Visibility.Visible : Visibility.Collapsed;
-            FoldersCard.Visibility = foldersVisible ? Visibility.Visible : Visibility.Collapsed;
-            PluginsCard.Visibility = pluginsVisible ? Visibility.Visible : Visibility.Collapsed;
-        }
+        SetVisibilityIfChanged(SystemCard, systemVisible ? Visibility.Visible : Visibility.Collapsed);
+        SetVisibilityIfChanged(IikoCard, iikoVisible ? Visibility.Visible : Visibility.Collapsed);
+        SetVisibilityIfChanged(ProgramsCard, programsVisible ? Visibility.Visible : Visibility.Collapsed);
+        SetVisibilityIfChanged(NetworkCard, networkVisible ? Visibility.Visible : Visibility.Collapsed);
+        SetVisibilityIfChanged(LogsCard, logsVisible ? Visibility.Visible : Visibility.Collapsed);
+        SetVisibilityIfChanged(FoldersCard, foldersVisible ? Visibility.Visible : Visibility.Collapsed);
+        SetVisibilityIfChanged(PluginsCard, Visibility.Visible);
     }
 
-    private static bool HasVisibleButtons(System.Windows.Controls.Panel panel) => panel.Children.OfType<Button>().Any(b => b.Visibility == Visibility.Visible);
+    private static void SetVisibilityIfChanged(UIElement element, Visibility newVisibility)
+    {
+        if (element.Visibility != newVisibility)
+            element.Visibility = newVisibility;
+    }
+
+    private static bool HasVisibleButtonsFast(System.Windows.Controls.Panel panel)
+    {
+        foreach (var child in panel.Children)
+        {
+            if (child is Button { Visibility: Visibility.Visible })
+                return true;
+        }
+        return false;
+    }
 
     private void RebuildSearchIndex()
     {
@@ -1193,17 +1232,17 @@ public partial class MainWindow : Window
         if (_isTouchEnabled == true)
         {
             TouchToggleButton.Content = "Отключить сенсор";
-            TouchToggleButton.Style = FindResource("DangerButton") as Style;
+            TouchToggleButton.Style = _cachedDangerButtonStyle;
         }
         else if (_isTouchEnabled == false)
         {
             TouchToggleButton.Content = "Включить сенсор";
-            TouchToggleButton.Style = FindResource("PrimaryButton") as Style;
+            TouchToggleButton.Style = _cachedPrimaryButtonStyle;
         }
         else
         {
             TouchToggleButton.Content = "Сенсор неизвестен";
-            TouchToggleButton.Style = FindResource("BaseButton") as Style;
+            TouchToggleButton.Style = _cachedBaseButtonStyle;
             TouchToggleButton.IsEnabled = false;
         }
     }
