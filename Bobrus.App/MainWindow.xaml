@@ -1100,6 +1100,64 @@
                                           Style="{StaticResource ToggleCheckBox}"
                                           Checked="OnThemeToggleChanged"
                                           Unchecked="OnThemeToggleChanged" />
+                                <TextBlock Text="Надпись CRM/Касса"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Margin="0 10 0 4" />
+                                <StackPanel Orientation="Vertical">
+                                <CheckBox x:Name="OverlayToggle"
+                                          Content="Показывать сверху CRM и номер кассы"
+                                          Style="{StaticResource ToggleCheckBox}"
+                                          Checked="OnOverlayToggleChanged"
+                                          Unchecked="OnOverlayToggleChanged" />
+                                    <Grid x:Name="OverlaySettingsPanel"
+                                          Margin="0 8 0 0"
+                                          Visibility="Collapsed">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0 0 8 0">
+                                            <TextBlock Text="CRM" FontWeight="SemiBold" />
+                                            <TextBox x:Name="OverlayCrmInput"
+                                                     Margin="0 4 0 0"
+                                                     Background="{DynamicResource InputBackgroundBrush}"
+                                                     Foreground="{DynamicResource InputForegroundBrush}"
+                                                     BorderBrush="{DynamicResource BorderBrushMuted}"
+                                                     BorderThickness="1"
+                                                     Padding="6 4"
+                                                     TextChanged="OnOverlayCrmChanged" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="Касса" FontWeight="SemiBold" />
+                                            <TextBox x:Name="OverlayCashInput"
+                                                     Margin="0 4 0 0"
+                                                     Background="{DynamicResource InputBackgroundBrush}"
+                                                     Foreground="{DynamicResource InputForegroundBrush}"
+                                                     BorderBrush="{DynamicResource BorderBrushMuted}"
+                                                     BorderThickness="1"
+                                                     Padding="6 4"
+                                                     TextChanged="OnOverlayCashChanged" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <StackPanel x:Name="OverlayDisplayPanel"
+                                                Margin="0 8 0 0"
+                                                Visibility="Collapsed">
+                                        <TextBlock Text="Экран для надписи" FontWeight="SemiBold" />
+                                        <StackPanel Orientation="Horizontal" Margin="0 4 0 0">
+                                            <TextBlock x:Name="OverlayDisplayLabel"
+                                                       Width="220"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       Margin="0 0 8 0"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <Button Content="Выбрать экран"
+                                                    Width="150"
+                                                    Style="{StaticResource BaseButton}"
+                                                    Click="OnOverlayDisplayPickClicked" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </StackPanel>
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>

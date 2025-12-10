@@ -5,7 +5,9 @@ using System.Globalization;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Threading;
+using WinForms = System.Windows.Forms;
 
 namespace Bobrus.App;
 
@@ -25,12 +27,43 @@ public partial class MainWindow
 
     private void OnOpenSettingsClicked(object sender, RoutedEventArgs e)
     {
+        UpdateOverlayDisplayLabel();
+        ApplyOverlaySettingsVisibility();
         SettingsOverlay.Visibility = Visibility.Visible;
     }
 
     private void OnSettingsOverlayCloseClicked(object sender, RoutedEventArgs e)
     {
         SettingsOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    private void OnOverlayToggleChanged(object sender, RoutedEventArgs e)
+    {
+        if (_suppressSettingsToggle) return;
+        _overlayEnabled = OverlayToggle.IsChecked == true;
+        if (_overlayEnabled && !HasOverlayValues())
+        {
+            ShowNotification("Заполните CRM и Кассу, чтобы отобразить надпись", NotificationType.Warning);
+        }
+        ApplyOverlaySettingsVisibility();
+        SaveAppSettings();
+        ApplyOverlayState();
+    }
+
+    private void OnOverlayCrmChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_suppressSettingsToggle) return;
+        UpdateOverlayValues(OverlayCrmInput.Text, OverlayCashInput.Text);
+        SaveAppSettings();
+        ApplyOverlayState();
+    }
+
+    private void OnOverlayCashChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_suppressSettingsToggle) return;
+        UpdateOverlayValues(OverlayCrmInput.Text, OverlayCashInput.Text);
+        SaveAppSettings();
+        ApplyOverlayState();
     }
 
     private void OnHideToTrayToggleChanged(object sender, RoutedEventArgs e)
@@ -411,6 +444,17 @@ public partial class MainWindow
             try { return Encoding.GetEncoding(866); } catch { }
             try { return Encoding.GetEncoding(1251); } catch { }
             return Encoding.UTF8;
+        }
+    }
+    private void OnOverlayDisplayPickClicked(object sender, RoutedEventArgs e)
+    {
+        var picker = new ScreenPickerWindow(_overlayDisplay) { Owner = this };
+        if (picker.ShowDialog() == true && !string.IsNullOrWhiteSpace(picker.SelectedDeviceName))
+        {
+            _overlayDisplay = picker.SelectedDeviceName!;
+            UpdateOverlayDisplayLabel();
+            ApplyOverlayState();
+            SaveAppSettings();
         }
     }
 }

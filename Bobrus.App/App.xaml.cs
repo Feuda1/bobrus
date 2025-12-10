@@ -13,15 +13,25 @@ namespace Bobrus.App;
 public partial class App : Application
 {
     private Mutex? _singleInstanceMutex;
-    private const string MutexName = "Global\\BobrusSingleInstance";
+    private const string MainMutexName = "Global\\BobrusSingleInstance";
+    private const string OverlayMutexName = "Global\\BobrusOverlayRunner";
+    private bool _isOverlayRunner;
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        _isOverlayRunner = e.Args.Any(a => string.Equals(a, "--overlay-runner", StringComparison.OrdinalIgnoreCase));
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        _singleInstanceMutex = new Mutex(initiallyOwned: true, name: MutexName, createdNew: out var isFirstInstance);
-        if (!isFirstInstance)
+        var mutexName = _isOverlayRunner ? OverlayMutexName : MainMutexName;
+        _singleInstanceMutex = new Mutex(initiallyOwned: true, name: mutexName, createdNew: out var isFirstInstance);
+        if (!_isOverlayRunner && !isFirstInstance)
         {
             TryShowExistingWindow();
+            Shutdown();
+            return;
+        }
+
+        if (_isOverlayRunner && !isFirstInstance)
+        {
             Shutdown();
             return;
         }
@@ -35,6 +45,19 @@ public partial class App : Application
             return;
         }
 
+        if (_isOverlayRunner)
+        {
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            var daemon = new OverlayDaemon();
+            daemon.Run();
+            base.OnStartup(e);
+            return;
+        }
+
+        ShutdownMode = ShutdownMode.OnMainWindowClose;
+        var mainWindow = new MainWindow();
+        MainWindow = mainWindow;
+        mainWindow.Show();
         base.OnStartup(e);
     }
 
@@ -45,7 +68,6 @@ public partial class App : Application
         Log.CloseAndFlush();
         base.OnExit(e);
     }
-
     private static void ConfigureLogging()
     {
         var logPath = Path.Combine(AppPaths.LogsDirectory, "bobrus-.log");

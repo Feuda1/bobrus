@@ -1,0 +1,33 @@
+<Window x:Class="Bobrus.App.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Overlay"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        WindowState="Normal"
+        Focusable="False"
+        IsHitTestVisible="False">
+
+    <Grid>
+        <!-- Текст по центру сверху -->
+        <TextBlock x:Name="OverlayText"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Top"
+                   Margin="0,0,0,0"
+                   FontWeight="Bold"
+                   Foreground="#FF3333"
+                   TextAlignment="Center">
+            <TextBlock.Effect>
+                <DropShadowEffect Color="Black"
+                                  Direction="315"
+                                  ShadowDepth="2"
+                                  Opacity="0.7"
+                                  BlurRadius="3"/>
+            </TextBlock.Effect>
+        </TextBlock>
+    </Grid>
+</Window>

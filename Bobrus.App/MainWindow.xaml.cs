@@ -62,6 +62,10 @@ public partial class MainWindow : Window
     private Timer? _autoUpdateTimer;
     private bool _showAllSections;
     private bool _consoleVisible;
+    private bool _overlayEnabled;
+    private string _overlayCrm = string.Empty;
+    private string _overlayCashDesk = string.Empty;
+    private string _overlayDisplay = string.Empty;
     private double _restoreLeft;
     private double _restoreTop;
     private double _restoreWidth;
@@ -175,6 +179,10 @@ public partial class MainWindow : Window
         _autostartEnabled = settings?.Autostart ?? true;
         _showAllSections = settings?.ShowAllSections ?? false;
         _consoleVisible = settings?.ShowConsole ?? true;
+        _overlayEnabled = settings?.OverlayEnabled ?? false;
+        _overlayCrm = settings?.OverlayCrm?.Trim() ?? string.Empty;
+        _overlayCashDesk = settings?.OverlayCashDesk?.Trim() ?? string.Empty;
+        _overlayDisplay = settings?.OverlayDisplay ?? string.Empty;
         _currentTheme = ParseTheme(settings?.Theme);
         _isFirstRunSettings = settings is null;
 
@@ -264,6 +272,13 @@ public partial class MainWindow : Window
         }
         _autoUpdateTimer?.Stop();
         _autoUpdateTimer?.Dispose();
+
+        // Если надпись включена, убедимся, что фоновые процессы/автозапуск подняты
+        if (_overlayEnabled && HasOverlayValues())
+        {
+            SetOverlayAutostart(true);
+            StartOverlayRunner();
+        }
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -1922,7 +1937,16 @@ public partial class MainWindow : Window
     {
         try
         {
-            var settings = new AppSettings(_hideToTrayEnabled, _autostartEnabled, GetThemeName(), _showAllSections, _consoleVisible);
+            var settings = new AppSettings(
+                _hideToTrayEnabled,
+                _autostartEnabled,
+                GetThemeName(),
+                _showAllSections,
+                _consoleVisible,
+                _overlayEnabled,
+                _overlayCrm,
+                _overlayCashDesk,
+                _overlayDisplay);
             var json = JsonSerializer.Serialize(settings);
             File.WriteAllText(SettingsFilePath, json);
         }
@@ -1930,6 +1954,153 @@ public partial class MainWindow : Window
         {
             _logger.Warning(ex, "Не удалось сохранить настройки");
         }
+    }
+
+    private void ApplyOverlayState()
+    {
+        if (_overlayEnabled && HasOverlayValues())
+        {
+            StartOverlayRunner();
+            SetOverlayAutostart(true);
+        }
+        else
+        {
+            StopOverlayRunner();
+            SetOverlayAutostart(false);
+        }
+    }
+
+    private void UpdateOverlayValues(string? crm, string? cashDesk)
+    {
+        _overlayCrm = crm?.Trim() ?? string.Empty;
+        _overlayCashDesk = cashDesk?.Trim() ?? string.Empty;
+    }
+
+    private bool HasOverlayValues()
+    {
+        return !string.IsNullOrWhiteSpace(_overlayCrm) && !string.IsNullOrWhiteSpace(_overlayCashDesk);
+    }
+
+    private void ApplyOverlaySettingsVisibility()
+    {
+        var visibility = _overlayEnabled ? Visibility.Visible : Visibility.Collapsed;
+        if (OverlaySettingsPanel != null)
+        {
+            OverlaySettingsPanel.Visibility = visibility;
+        }
+
+        if (OverlayDisplayPanel != null)
+        {
+            OverlayDisplayPanel.Visibility = visibility;
+        }
+    }
+
+    private void UpdateOverlayDisplayLabel()
+    {
+        if (OverlayDisplayLabel == null) return;
+
+        var screens = WinForms.Screen.AllScreens;
+        var screen = screens.FirstOrDefault(s => string.Equals(s.DeviceName, _overlayDisplay, StringComparison.OrdinalIgnoreCase))
+                     ?? WinForms.Screen.PrimaryScreen
+                     ?? screens.FirstOrDefault();
+
+        if (screen is null)
+        {
+            OverlayDisplayLabel.Text = "Экран не найден";
+            return;
+        }
+
+        var index = Array.IndexOf(screens, screen);
+        var name = screen.Primary ? "Основной" : "Экран";
+        OverlayDisplayLabel.Text = $"{index + 1}: {name} {screen.Bounds.Width}x{screen.Bounds.Height}";
+    }
+
+    private void StartOverlayRunner()
+    {
+        try
+        {
+            if (!IsOverlayRunnerActive())
+            {
+                var exePath = Process.GetCurrentProcess().MainModule?.FileName;
+                if (string.IsNullOrWhiteSpace(exePath)) return;
+
+                var psi = BuildOverlayStartInfo(exePath);
+                Process.Start(psi);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Не удалось запустить оверлей-процесс");
+        }
+    }
+
+    private void StopOverlayRunner()
+    {
+        // Оверлей-демон сам завершится, увидев OverlayEnabled = false в settings.json.
+        // Тут достаточно обновить настройки, чтобы триггернуть FileSystemWatcher на его стороне.
+    }
+
+    private static bool IsOverlayRunnerActive()
+    {
+        try
+        {
+            return Mutex.TryOpenExisting("Global\\BobrusOverlayRunner", out _);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private void SetOverlayAutostart(bool enable)
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", writable: true)
+                             ?? Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
+            if (key == null) return;
+
+            if (enable)
+            {
+                var exePath = Process.GetCurrentProcess().MainModule?.FileName;
+                if (string.IsNullOrWhiteSpace(exePath)) return;
+                key.SetValue("BobrusOverlay", $"\"{exePath}\" --overlay-runner");
+            }
+            else
+            {
+                key.DeleteValue("BobrusOverlay", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Не удалось обновить автозапуск оверлея");
+        }
+    }
+
+    private static ProcessStartInfo BuildOverlayStartInfo(string launcherPath)
+    {
+        // Если запущено через dotnet Bobrus.dll, нужно вызвать dotnet Bobrus.dll --overlay-runner
+        var isDll = string.Equals(Path.GetExtension(launcherPath), ".dll", StringComparison.OrdinalIgnoreCase);
+        if (isDll)
+        {
+            return new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"\"{launcherPath}\" --overlay-runner",
+                UseShellExecute = true,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden
+            };
+        }
+
+        return new ProcessStartInfo
+        {
+            FileName = launcherPath,
+            Arguments = "--overlay-runner",
+            UseShellExecute = true,
+            CreateNoWindow = true,
+            WindowStyle = ProcessWindowStyle.Hidden
+        };
     }
 
     private void ApplySectionLayout()
@@ -2020,6 +2191,24 @@ public partial class MainWindow : Window
             ConsoleToggle.IsChecked = _consoleVisible;
         }
 
+        if (OverlayToggle != null)
+        {
+            OverlayToggle.IsChecked = _overlayEnabled;
+        }
+
+        if (OverlayCrmInput != null)
+        {
+            OverlayCrmInput.Text = _overlayCrm;
+        }
+
+        if (OverlayCashInput != null)
+        {
+            OverlayCashInput.Text = _overlayCashDesk;
+        }
+
+        UpdateOverlayDisplayLabel();
+        ApplyOverlaySettingsVisibility();
+
         if (ThemeToggle != null)
         {
             ThemeToggle.IsChecked = _currentTheme == ThemeVariant.Dark;
@@ -2027,6 +2216,7 @@ public partial class MainWindow : Window
 
         ApplySectionLayout();
         ApplyConsoleVisibility();
+        ApplyOverlayState();
 
         if (_isFirstRunSettings)
         {
@@ -2192,5 +2382,4 @@ public partial class MainWindow : Window
         Dark
     }
 
-    private sealed record AppSettings(bool HideToTray, bool Autostart, string? Theme, bool ShowAllSections, bool ShowConsole);
 }
