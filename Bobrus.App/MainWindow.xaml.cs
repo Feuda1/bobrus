@@ -45,12 +45,11 @@ public partial class MainWindow : Window
     private readonly ILogger _logger = Log.ForContext<MainWindow>();
     private readonly HttpClient _httpClient = new();
     private readonly UpdateService _updateService;
-    private readonly TouchDeviceManager _touchManager = new();
     private readonly CleaningService _cleaningService = new();
-    private readonly ComPortManager _comPortManager = new();
     private readonly SecurityService _securityService = new();
     private readonly TlsConfigurator _tlsConfigurator = new();
     private readonly PrintSpoolService _printSpoolService = new();
+    private readonly TouchDeviceService _touchManager = new();
     private readonly Thickness _defaultResizeBorder = new(8);
     private HwndSource? _hwndSource;
     private readonly bool _startHidden;
@@ -302,14 +301,17 @@ public partial class MainWindow : Window
     private async Task RefreshTouchStateAsync()
     {
         TouchToggleButton.IsEnabled = false;
+        RestartTouchButton.IsEnabled = false;
         TouchToggleButton.Content = "Сенсор: проверка...";
         TouchToggleButton.Style = FindResource("BaseButton") as Style;
 
         var devices = await _touchManager.GetTouchDevicesAsync();
+        LogTouchDevices(devices, "initial");
         if (devices.Count == 0)
         {
             TouchToggleButton.Content = "Сенсор не найден";
             TouchToggleButton.IsEnabled = false;
+            RestartTouchButton.IsEnabled = false;
             _isTouchEnabled = null;
             return;
         }
@@ -317,6 +319,7 @@ public partial class MainWindow : Window
         _isTouchEnabled = devices.Any(d => d.IsEnabled);
         UpdateTouchButtonVisual();
         TouchToggleButton.IsEnabled = true;
+        RestartTouchButton.IsEnabled = true;
     }
 
     private async void OnTouchToggleClicked(object sender, RoutedEventArgs e)
@@ -326,6 +329,7 @@ public partial class MainWindow : Window
         try
         {
             var targetState = !(_isTouchEnabled ?? true);
+            _logger.Information("Touch toggle requested: target={Target}", targetState ? "on" : "off");
             var ok = await _touchManager.SetTouchEnabledAsync(targetState);
             if (!ok)
             {
@@ -336,6 +340,8 @@ public partial class MainWindow : Window
                 _isTouchEnabled = targetState;
                 UpdateTouchButtonVisual();
                 ShowNotification(targetState ? "Сенсор включён" : "Сенсор отключён", NotificationType.Success);
+                var devices = await _touchManager.GetTouchDevicesAsync();
+                LogTouchDevices(devices, "after-toggle");
             }
         }
         catch (Exception ex)
@@ -439,6 +445,7 @@ public partial class MainWindow : Window
         TouchToggleButton.IsEnabled = false;
         try
         {
+            _logger.Information("Touch restart requested");
             var ok = await _touchManager.RestartTouchAsync();
             if (!ok)
             {
@@ -449,6 +456,8 @@ public partial class MainWindow : Window
                 ShowNotification("Сенсор перезапущен", NotificationType.Success);
                 _isTouchEnabled = true;
                 UpdateTouchButtonVisual();
+                var devices = await _touchManager.GetTouchDevicesAsync();
+                LogTouchDevices(devices, "after-restart");
                 await RefreshTouchStateAsync();
             }
         }
@@ -463,6 +472,12 @@ public partial class MainWindow : Window
             button.IsEnabled = true;
             TouchToggleButton.IsEnabled = toggleWasEnabled;
         }
+    }
+
+    private void LogTouchDevices(IReadOnlyList<Services.TouchDevice> devices, string stage)
+    {
+        var info = devices.Select(d => $"{d.FriendlyName} [{d.InstanceId}] {(d.IsEnabled ? "ON" : "OFF")}");
+        _logger.Information("Touch devices ({Stage}): {List}", stage, string.Join("; ", info));
     }
 
     private async void OnCleanupClicked(object sender, RoutedEventArgs e)
@@ -509,38 +524,6 @@ public partial class MainWindow : Window
         if (mb < 1024) return $"{mb:F1} МБ";
         double gb = mb / 1024.0;
         return $"{gb:F1} ГБ";
-    }
-
-    private async void OnRestartComClicked(object sender, RoutedEventArgs e)
-    {
-        var button = (Button)sender;
-        button.IsEnabled = false;
-        button.Content = "Перезапуск...";
-        try
-        {
-            _logger.Information("Перезапуск COM: старт");
-            var ok = await _comPortManager.RestartPortsAsync();
-            if (!ok)
-            {
-                ShowNotification("COM-порты не найдены", NotificationType.Error);
-                _logger.Warning("Перезапуск COM: устройства не найдены");
-            }
-            else
-            {
-                ShowNotification("COM-порты перезапущены", NotificationType.Success);
-                _logger.Information("Перезапуск COM: завершено");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Ошибка перезапуска COM-портов");
-            ShowNotification($"Ошибка перезапуска COM: {ex.Message}", NotificationType.Error);
-        }
-        finally
-        {
-            button.Content = "Перезапуск COM-портов";
-            button.IsEnabled = true;
-        }
     }
 
     private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
