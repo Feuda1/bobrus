@@ -90,9 +90,12 @@ internal sealed class CleaningService
             try
             {
                 var info = new FileInfo(file);
-                freed += info.Exists ? info.Length : 0;
+                if (!info.Exists) continue;
+                
+                var size = info.Length;
                 info.IsReadOnly = false;
                 info.Delete();
+                freed += size;
             }
             catch
             {
@@ -169,9 +172,12 @@ internal sealed class CleaningService
                     try
                     {
                         var info = new FileInfo(file);
-                        freed += info.Exists ? info.Length : 0;
+                        if (!info.Exists) continue;
+
+                        var size = info.Length;
                         info.IsReadOnly = false;
                         info.Delete();
+                        freed += size;
                     }
                     catch
                     {
@@ -251,9 +257,10 @@ internal sealed class CleaningService
                         continue;
                     }
 
-                    freed += info.Length;
+                    var size = info.Length;
                     info.IsReadOnly = false;
                     info.Delete();
+                    freed += size;
                 }
                 catch
                 {

@@ -110,7 +110,6 @@ internal sealed class OverlayDaemon
             }
             catch
             {
-                // ignore and retry
             }
 
             Thread.Sleep(100);

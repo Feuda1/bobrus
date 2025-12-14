@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -66,6 +67,7 @@ public partial class MainWindow : Window
     private string _overlayCrm = string.Empty;
     private string _overlayCashDesk = string.Empty;
     private string _overlayDisplay = string.Empty;
+    private readonly bool _launchSetupWizard;
     private double _restoreLeft;
     private double _restoreTop;
     private double _restoreWidth;
@@ -73,6 +75,7 @@ public partial class MainWindow : Window
     private Section _currentSection = Section.System;
     private readonly Dictionary<Section, List<Button>> _sectionButtons = new();
     private readonly Dictionary<Button, string> _buttonSearchIndex = new();
+    private SetupWizardWindow? _setupWizardWindow;
     private ThemeVariant _currentTheme = ThemeVariant.Light;
     private readonly bool _isFirstRunSettings;
     private readonly Dictionary<string, Color> _lightTheme = new()
@@ -108,7 +111,9 @@ public partial class MainWindow : Window
         ["ConsoleForegroundBrush"] = ColorFromHex("#1E2330"),
         ["OnAccentBrush"] = ColorFromHex("#FFFFFF"),
         ["NavButtonActiveBrush"] = ColorFromHex("#D8E7FF"),
-        ["NavButtonActiveBorderBrush"] = ColorFromHex("#AAC7FF")
+        ["NavButtonActiveBorderBrush"] = ColorFromHex("#AAC7FF"),
+        ["OverlayBackgroundBrush"] = ColorFromHex("#99000000"), 
+        ["CardBrush"] = ColorFromHex("#FFFFFF")
     };
 
     private readonly Dictionary<string, Color> _darkTheme = new()
@@ -144,9 +149,12 @@ public partial class MainWindow : Window
         ["ConsoleForegroundBrush"] = ColorFromHex("#EAEAEA"),
         ["OnAccentBrush"] = ColorFromHex("#F0F2F8"),
         ["NavButtonActiveBrush"] = ColorFromHex("#233552"),
-        ["NavButtonActiveBorderBrush"] = ColorFromHex("#34517A")
+        ["NavButtonActiveBorderBrush"] = ColorFromHex("#34517A"),
+        ["OverlayBackgroundBrush"] = ColorFromHex("#99000000"), 
+        ["CardBrush"] = ColorFromHex("#13131A") 
     };
     private const string StartHiddenArg = "--start-hidden";
+    private const string SetupWizardArg = "--setup-wizard";
     private const double ConsoleColumnMinWidth = 200;
     private const double ConsoleColumnMaxWidth = 320;
     private string SettingsFilePath => Path.Combine(AppPaths.AppDataRoot, "settings.json");
@@ -159,8 +167,6 @@ public partial class MainWindow : Window
     private Action? _pendingConfirmAction;
     private bool? _isTouchEnabled;
     private List<Button> _actionButtons = new();
-
-    // Кэшированные ресурсы для производительности
     private Brush? _cachedTextSecondaryBrush;
     private Brush? _cachedDangerBrush;
     private Brush? _cachedAccentBrush;
@@ -197,6 +203,7 @@ public partial class MainWindow : Window
         VersionText.Text = $"v{_updateService.CurrentVersion.ToString(3)}";
         _logger.Information("Bobrus запущен. Текущая версия {Version}", _updateService.CurrentVersion);
         _startHidden = Environment.GetCommandLineArgs().Any(a => string.Equals(a, StartHiddenArg, StringComparison.OrdinalIgnoreCase));
+        _launchSetupWizard = Environment.GetCommandLineArgs().Any(a => string.Equals(a, SetupWizardArg, StringComparison.OrdinalIgnoreCase));
         ApplyInitialSettingsToUi();
         Loaded += OnLoaded;
     }
@@ -270,10 +277,9 @@ public partial class MainWindow : Window
             _trayIcon.Dispose();
             _trayIcon = null;
         }
+        _setupWizardWindow?.Close();
         _autoUpdateTimer?.Stop();
         _autoUpdateTimer?.Dispose();
-
-        // Если надпись включена, убедимся, что фоновые процессы/автозапуск подняты
         if (_overlayEnabled && HasOverlayValues())
         {
             SetOverlayAutostart(true);
@@ -283,6 +289,14 @@ public partial class MainWindow : Window
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        var args = Environment.GetCommandLineArgs();
+        var isResume = args.Contains("--resume");
+        if ((_launchSetupWizard || isResume) && IsAdministrator())
+        {
+            ShowSetupWizardWindow(autoResume: isResume);
+            return; 
+        }
+
         UiLogBuffer.OnLog += OnUiLog;
         _actionButtons = ActionsPanel.Children.OfType<Button>()
             .Concat(IikoActionsPanel.Children.OfType<Button>())
@@ -409,7 +423,6 @@ public partial class MainWindow : Window
 
         Dispatcher.InvokeAsync(() =>
         {
-            // Ограничиваем количество логов для производительности
             var blocks = LogRichTextBox.Document.Blocks;
             while (blocks.Count >= MaxLogEntries)
             {
@@ -569,7 +582,6 @@ public partial class MainWindow : Window
 
     private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
     {
-        // Debouncing для производительности на слабых ПК
         _searchDebounceToken?.Cancel();
         _searchDebounceToken = new CancellationTokenSource();
         var token = _searchDebounceToken.Token;
@@ -1216,30 +1228,147 @@ public partial class MainWindow : Window
             {
                 try
                 {
-                    ShowNotification("Отключаем защитник...", NotificationType.Warning);
+                    using var cts = new CancellationTokenSource();
+                    var ct = cts.Token;
+                    ShowDefenderTip(true);
+
+                    ShowNotification("Откройте 'Защита от вирусов' и отключите защиту", NotificationType.Info);
+                    _logger.Information("Запуск окна Defender...");
+                    try
+                    {
+                         Process.Start(new ProcessStartInfo
+                         {
+                             FileName = "windowsdefender://threatsettings",
+                             UseShellExecute = true
+                         });
+                    }
+                    catch 
+                    {
+                        Process.Start(new ProcessStartInfo { FileName = "ms-settings:windowsdefender", UseShellExecute = true });
+                    }
+                    await Task.Run(async () =>
+                    {
+                         var processNames = new[] { "SecHealthUI", "WindowsSecurityHealthUI", "WindowsSecurity" };
+                         var windowTitles = new[] { "Безопасность Windows", "Windows Security", "Центр безопасности защитника Windows" };
+                         await Task.Delay(1500, ct);
+                         await Task.Delay(3000, ct);
+                         _logger.Information("Ожидание открытия окна Defender...");
+                         while (!HasVisibleWindow(processNames, windowTitles))
+                         {
+                             ct.ThrowIfCancellationRequested();
+                             await Task.Delay(2000, ct); 
+                         }
+
+                         _logger.Information("Окно Defender открыто. Ожидание закрытия...");
+                         while (HasVisibleWindow(processNames, windowTitles))
+                         {
+                             ct.ThrowIfCancellationRequested();
+                             await Task.Delay(1000, ct);
+                         }
+                         
+                         _logger.Information("Окно Defender закрыто.");
+                    }, ct);
+
+                    ShowDefenderTip(false);
+
+                    ShowNotification("Вырезаем защитник...", NotificationType.Warning);
                     var def = await _securityService.DisableDefenderAsync();
                     _logger.Information("Отключение защитника: {Result}. Вывод: {Output}", def.Ok ? "успех" : "ошибка", def.Output?.Trim());
 
-                    ShowNotification("Отключаем брандмауэр...", NotificationType.Warning);
+                    ShowNotification("Вырезаем брандмауэр...", NotificationType.Warning);
                     var fw = await _securityService.DisableFirewallAsync();
                     _logger.Information("Отключение брандмауэра: {Result}. Вывод: {Output}", fw.Ok ? "успех" : "ошибка", fw.Output?.Trim());
-
-                    if (def.Ok && fw.Ok)
-                    {
-                        ShowNotification("Защитник и брандмауэр отключены", NotificationType.Success);
-                    }
-                    else
-                    {
-                        var detail = $"{(def.Ok ? "" : "Defender: " + def.Output)} {(fw.Ok ? "" : "Firewall: " + fw.Output)}".Trim();
-                        ShowNotification(string.IsNullOrWhiteSpace(detail) ? "Часть действий не выполнена" : detail, NotificationType.Error);
-                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    ShowDefenderTip(false);
+                    ShowNotification("Операция отменена", NotificationType.Warning);
                 }
                 catch (Exception ex)
                 {
+                    ShowDefenderTip(false);
                     _logger.Error(ex, "Ошибка при отключении защитника/брандмауэра");
                     ShowNotification($"Ошибка при отключении защиты: {ex.Message}", NotificationType.Error);
                 }
             });
+    }
+
+    private DefenderTipWindow? _defenderTipWindow;
+
+    private void ShowDefenderTip(bool show)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            if (show)
+            {
+                if (_defenderTipWindow == null || !_defenderTipWindow.IsLoaded)
+                {
+                    _defenderTipWindow = new DefenderTipWindow
+                    {
+                        Owner = this,
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner
+                    };
+                }
+                _defenderTipWindow.Show();
+            }
+            else
+            {
+                _defenderTipWindow?.Close();
+                _defenderTipWindow = null;
+            }
+        });
+    }
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr hWnd);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+    private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+    private static extern int GetWindowTextLength(IntPtr hWnd);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    private static bool HasVisibleWindow(string[] processNames, string[] titles)
+    {
+        var pids = Process.GetProcesses()
+            .Where(p => processNames.Contains(p.ProcessName, StringComparer.OrdinalIgnoreCase))
+            .Select(p => p.Id)
+            .ToHashSet();
+
+        var found = false;
+        EnumWindows((hwnd, lParam) =>
+        {
+            if (!IsWindowVisible(hwnd)) return true;
+            GetWindowThreadProcessId(hwnd, out var pid);
+            if (pids.Contains((int)pid))
+            {
+                found = true;
+                return false;
+            }
+            var length = GetWindowTextLength(hwnd);
+            if (length > 0)
+            {
+                var sb = new StringBuilder(length + 1);
+                GetWindowText(hwnd, sb, sb.Capacity);
+                var windowTitle = sb.ToString();
+                if (titles.Any(t => string.Equals(windowTitle, t, StringComparison.OrdinalIgnoreCase)))
+                {
+                    found = true;
+                    return false;
+                }
+            }
+
+            return true;
+        }, IntPtr.Zero);
+
+        return found;
     }
 
     private void UpdateTouchButtonVisual()
@@ -1947,12 +2076,49 @@ public partial class MainWindow : Window
                 _overlayCrm,
                 _overlayCashDesk,
                 _overlayDisplay);
-            var json = JsonSerializer.Serialize(settings);
+            var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(SettingsFilePath, json);
         }
         catch (Exception ex)
         {
             _logger.Warning(ex, "Не удалось сохранить настройки");
+        }
+    }
+    private void ReloadOverlaySettingsFromFile()
+    {
+        try
+        {
+            var settings = LoadAppSettings();
+            if (settings == null) return;
+            
+            _overlayEnabled = settings.OverlayEnabled;
+            _overlayCrm = settings.OverlayCrm?.Trim() ?? string.Empty;
+            _overlayCashDesk = settings.OverlayCashDesk?.Trim() ?? string.Empty;
+            _overlayDisplay = settings.OverlayDisplay ?? string.Empty;
+            _suppressSettingsToggle = true;
+            if (OverlayToggle != null)
+            {
+                OverlayToggle.IsChecked = _overlayEnabled;
+            }
+            if (OverlayCrmInput != null)
+            {
+                OverlayCrmInput.Text = _overlayCrm;
+            }
+            if (OverlayCashInput != null)
+            {
+                OverlayCashInput.Text = _overlayCashDesk;
+            }
+            UpdateOverlayDisplayLabel();
+            ApplyOverlaySettingsVisibility();
+            ApplyOverlayState();
+            _suppressSettingsToggle = false;
+            
+            _logger.Information("Настройки оверлея перезагружены из файла: Enabled={Enabled}, CRM={Crm}, Cash={Cash}", 
+                _overlayEnabled, _overlayCrm, _overlayCashDesk);
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Не удалось перезагрузить настройки оверлея");
         }
     }
 
@@ -2036,8 +2202,6 @@ public partial class MainWindow : Window
 
     private void StopOverlayRunner()
     {
-        // Оверлей-демон сам завершится, увидев OverlayEnabled = false в settings.json.
-        // Тут достаточно обновить настройки, чтобы триггернуть FileSystemWatcher на его стороне.
     }
 
     private static bool IsOverlayRunnerActive()
@@ -2079,7 +2243,6 @@ public partial class MainWindow : Window
 
     private static ProcessStartInfo BuildOverlayStartInfo(string launcherPath)
     {
-        // Если запущено через dotnet Bobrus.dll, нужно вызвать dotnet Bobrus.dll --overlay-runner
         var isDll = string.Equals(Path.GetExtension(launcherPath), ".dll", StringComparison.OrdinalIgnoreCase);
         if (isDll)
         {
@@ -2236,6 +2399,7 @@ public partial class MainWindow : Window
     {
         _currentSection = section;
         SystemCard.Visibility = section == Section.System ? Visibility.Visible : Visibility.Collapsed;
+
         IikoCard.Visibility = section == Section.Iiko ? Visibility.Visible : Visibility.Collapsed;
         ProgramsCard.Visibility = section == Section.Programs ? Visibility.Visible : Visibility.Collapsed;
         NetworkCard.Visibility = section == Section.Network ? Visibility.Visible : Visibility.Collapsed;
@@ -2248,6 +2412,7 @@ public partial class MainWindow : Window
     private void UpdateSectionNavState(Section section)
     {
         SystemNavToggle.IsChecked = section == Section.System;
+
         NetworkNavToggle.IsChecked = section == Section.Network;
         IikoNavToggle.IsChecked = section == Section.Iiko;
         ProgramsNavToggle.IsChecked = section == Section.Programs;
@@ -2259,6 +2424,7 @@ public partial class MainWindow : Window
     private void BuildSectionButtons()
     {
         _sectionButtons[Section.System] = ActionsPanel.Children.OfType<Button>().ToList();
+
         _sectionButtons[Section.Network] = NetworkActionsPanel.Children.OfType<Button>().ToList();
         _sectionButtons[Section.Iiko] = IikoActionsPanel.Children.OfType<Button>().ToList();
         _sectionButtons[Section.Programs] = ProgramsActionsPanel.Children.OfType<Button>().ToList();
@@ -2284,6 +2450,47 @@ public partial class MainWindow : Window
         {
             SetSectionVisibility(section);
             ApplySearch(SearchBox.Text);
+        }
+    }
+
+    private void OnOpenSetupWizardClicked(object sender, RoutedEventArgs e)
+    {
+        if (!IsAdministrator())
+        {
+            RelaunchAsAdmin(launchSetupWizard: true);
+            return;
+        }
+
+        ShowSetupWizardWindow();
+    }
+
+    private void ShowSetupWizardWindow(bool autoResume = false)
+    {
+        if (_setupWizardWindow is { IsLoaded: true })
+        {
+            _setupWizardWindow.WindowState = WindowState.Normal;
+            _setupWizardWindow.Show();
+            _setupWizardWindow.Activate();
+            return;
+        }
+
+        _setupWizardWindow = new SetupWizardWindow();
+        if (IsLoaded)
+        {
+            _setupWizardWindow.Owner = this;
+        }
+
+        _setupWizardWindow.Closed += (_, _) => 
+        {
+            _setupWizardWindow = null;
+            ReloadOverlaySettingsFromFile();
+        };
+        _setupWizardWindow.Show();
+        _setupWizardWindow.Activate();
+
+        if (autoResume)
+        {
+            _setupWizardWindow.ResumeSetup();
         }
     }
 
@@ -2313,6 +2520,74 @@ public partial class MainWindow : Window
     private string GetThemeName() => _currentTheme == ThemeVariant.Dark ? "dark" : "light";
 
     private static Color ColorFromHex(string hex) => (Color)ColorConverter.ConvertFromString(hex)!;
+
+    internal static bool IsAdministratorStatic() => IsAdministrator();
+
+    private static bool IsAdministrator()
+    {
+        try
+        {
+            var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+            var principal = new System.Security.Principal.WindowsPrincipal(identity);
+            return principal.IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    internal static void RelaunchAsAdminStatic(bool launchSetupWizard = false) => RelaunchAsAdmin(launchSetupWizard);
+
+    private static void RelaunchAsAdmin(bool launchSetupWizard = false)
+    {
+        try
+        {
+            var exePath = Process.GetCurrentProcess().MainModule?.FileName;
+            if (string.IsNullOrWhiteSpace(exePath))
+            {
+                Log.Warning("RelaunchAsAdmin: не удалось получить путь к exe");
+                return;
+            }
+
+            Log.Information("RelaunchAsAdmin: запуск с правами администратора, путь: {ExePath}, setupWizard: {SetupWizard}", exePath, launchSetupWizard);
+
+            var psi = new ProcessStartInfo(exePath)
+            {
+                UseShellExecute = true,
+                Verb = "runas",
+                Arguments = launchSetupWizard ? SetupWizardArg : string.Empty
+            };
+
+            try 
+            {
+                Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    Application.Current.Shutdown();
+                });
+                System.Threading.Thread.Sleep(300);
+                
+                var started = Process.Start(psi);
+                if (started != null)
+                {
+                    Log.Information("RelaunchAsAdmin: процесс запущен, PID: {PID}", started.Id);
+                }
+                else
+                {
+                    Log.Warning("RelaunchAsAdmin: Process.Start вернул null");
+                }
+            }
+            catch (System.ComponentModel.Win32Exception w32ex) when (w32ex.NativeErrorCode == 1223)
+            {
+                Log.Warning("RelaunchAsAdmin: пользователь отменил UAC запрос");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "RelaunchAsAdmin: ошибка при перезапуске");
+            Debug.WriteLine(ex);
+        }
+    }
 
     private void SetAutostart(bool enable)
     {
@@ -2368,6 +2643,7 @@ public partial class MainWindow : Window
     private enum Section
     {
         System,
+        SetupWizard,
         Network,
         Iiko,
         Programs,

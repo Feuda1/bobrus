@@ -1,0 +1,1036 @@
+<Window x:Class="Bobrus.App.SetupWizardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Мастер пусконаладки"
+        Height="520"
+        Width="960"
+        MinHeight="560"
+        MinWidth="760"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        Language="ru-RU"
+        Background="{DynamicResource BackgroundBrush}">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0"
+                      ResizeBorderThickness="8"
+                      CornerRadius="0"
+                      GlassFrameThickness="0"
+                      UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Grid Background="{DynamicResource BackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="60" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Top bar -->
+        <Grid Grid.Row="0"
+              Background="{DynamicResource TopBarBrush}"
+              MouseLeftButtonDown="OnTopBarMouseDown">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Orientation="Vertical"
+                        Margin="16 0 0 0"
+                        VerticalAlignment="Center">
+                <TextBlock Text="Мастер пусконаладки"
+                           FontSize="20"
+                           FontWeight="Bold" />
+
+            </StackPanel>
+
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center"
+                        Margin="0 0 12 0">
+                <Button Style="{StaticResource WindowIconButton}"
+                        Click="OnMinimizeClicked">
+                    <Viewbox Stretch="Uniform" Width="16" Height="16">
+                        <Path Stroke="{DynamicResource TextPrimaryBrush}"
+                              StrokeThickness="1.8"
+                              StrokeEndLineCap="Round"
+                              StrokeStartLineCap="Round"
+                              Data="M2,6 L8,12 L14,6" />
+                    </Viewbox>
+                </Button>
+                <Button Style="{StaticResource WindowIconButton}"
+                        Margin="6 0 0 0"
+                        Click="OnToggleMaximizeClicked">
+                    <Viewbox Stretch="Uniform" Width="16" Height="16">
+                        <Path Stroke="{DynamicResource TextPrimaryBrush}"
+                              StrokeThickness="1.8"
+                              StrokeEndLineCap="Round"
+                              StrokeStartLineCap="Round"
+                              Data="M2,10 L8,4 L14,10" />
+                    </Viewbox>
+                </Button>
+                <Button Style="{StaticResource WindowCloseButton}"
+                        Margin="6 0 0 0"
+                        Click="OnCloseClicked">
+                    <Viewbox Stretch="Uniform" Width="16" Height="16">
+                        <Path Stroke="{DynamicResource TextPrimaryBrush}"
+                              StrokeThickness="1.8"
+                              StrokeEndLineCap="Round"
+                              StrokeStartLineCap="Round"
+                              Data="M2,4 L14,16 M14,4 L2,16" />
+                    </Viewbox>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Content -->
+        <Grid Grid.Row="1" Margin="16 0 16 16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*" MinWidth="260" MaxWidth="320"/>
+                <ColumnDefinition Width="2*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Steps / summary -->
+            <Border Grid.Column="0"
+                    Style="{StaticResource CardBorder}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <StackPanel Grid.Row="0">
+                        <TextBlock Text="Статус выполнения"
+                                   FontSize="16"
+                                   FontWeight="SemiBold" 
+                                   Margin="0 0 0 12"/>
+                        
+                        <Grid>
+                            <ProgressBar x:Name="StepProgress"
+                                         Height="6"
+                                         Minimum="0"
+                                         Maximum="100"
+                                         Value="0" 
+                                         BorderThickness="0"
+                                         Background="{DynamicResource ToggleTrackBrush}"
+                                         Foreground="{DynamicResource AccentBrush}"/>
+                        </Grid>
+                        
+                        <TextBlock x:Name="StepStatusText"
+                                   Text="Черновик: настройки не применены"
+                                   Margin="0 8 0 12"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" 
+                                   TextWrapping="Wrap"/>
+                                   
+                        <StackPanel x:Name="ControlButtonsPanel" 
+                                    Orientation="Horizontal" 
+                                    HorizontalAlignment="Center" 
+                                    Margin="0 4 0 0"
+                                    Visibility="Collapsed">
+                            
+                            <Button x:Name="PauseButton"
+                                    Content="Пауза"
+                                    Click="OnPauseClicked"
+                                    Style="{StaticResource StandardButton}"
+                                    Padding="12 6"
+                                    Margin="0 0 8 0"
+                                    MinWidth="80"/>
+                                    
+                            <Button x:Name="StopButton"
+                                    Content="Стоп"
+                                    Click="OnStopClicked"
+                                    Style="{StaticResource StandardButton}"
+                                    Padding="12 6"
+                                    MinWidth="80"
+                                    Foreground="#FC8181"
+                                    BorderBrush="#FC8181"/>
+                        </StackPanel>
+                    </StackPanel>
+                    
+                    <!-- Log moved to sidebar to save main space for options -->
+                    <Grid Grid.Row="1" Margin="0 16 0 16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" 
+                                   Text="Лог событий"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Margin="0 0 0 8"/>
+                        
+                        <TextBox Grid.Row="1"
+                                 x:Name="ResultBox"
+                                 VerticalAlignment="Stretch"
+                                 TextWrapping="Wrap"
+                                 AcceptsReturn="True"
+                                 VerticalScrollBarVisibility="Auto"
+                                 IsReadOnly="True"
+                                 FontFamily="Consolas"
+                                 FontSize="12"
+                                 Padding="8"
+                                 Background="{DynamicResource ConsoleBackgroundBrush}"
+                                 Foreground="{DynamicResource ConsoleForegroundBrush}"
+                                 BorderThickness="1"
+                                 BorderBrush="{DynamicResource BorderBrushMuted}">
+                                 <TextBox.Resources>
+                                     <Style TargetType="Border">
+                                         <Setter Property="CornerRadius" Value="6"/>
+                                     </Style>
+                                 </TextBox.Resources>
+                        </TextBox>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- Options -->
+            <Border Grid.Column="1"
+                    Margin="16 0 0 0"
+                    Style="{StaticResource CardBorder}"
+                    Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TabControl Grid.Row="0" BorderThickness="0" Background="Transparent" Margin="6 0">
+                        <TabControl.Resources>
+                            <Style TargetType="TabItem">
+                                <Setter Property="FontSize" Value="14"/>
+                                <Setter Property="Padding" Value="12 8"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="TabItem">
+                                            <Border Name="Border" BorderThickness="0 0 0 2" BorderBrush="Transparent" Margin="0 0 4 0" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                     <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </TabControl.Resources>
+
+                        <TabItem Header="1. Выбор режима">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel Margin="20">
+                                <TextBlock Text="Выберите сценарий работы" FontSize="18" FontWeight="SemiBold" Margin="0 0 0 20"/>
+
+                                <StackPanel Margin="0 0 0 24">
+                                    <RadioButton x:Name="ModeExisting" GroupName="Mode" Content="Существующий POS" IsChecked="True" FontSize="15" Margin="0 0 0 8" Checked="OnModeChanged" Unchecked="OnModeChanged"/>
+                                    <TextBlock Text="Без создания учётной записи" 
+                                               TextWrapping="Wrap" Opacity="0.7" Margin="26 0 0 0"/>
+                                </StackPanel>
+
+                                <StackPanel Margin="0 0 0 24">
+                                    <RadioButton x:Name="ModeNew" GroupName="Mode" Content="Новый POS" FontSize="15" Margin="0 0 0 8" Checked="OnModeChanged" Unchecked="OnModeChanged"/>
+                                    <TextBlock Text="Новая учётная запись" 
+                                               TextWrapping="Wrap" Opacity="0.7" Margin="26 0 0 0"/>
+                                </StackPanel>
+
+                                <StackPanel x:Name="NewUserGroup" Margin="26 0 0 0" Visibility="Collapsed">
+                                    <!-- Тип терминала (RadioButtons) -->
+                                    <TextBlock Text="Тип терминала:" Margin="0 0 0 8" FontWeight="Medium"/>
+                                    <WrapPanel Margin="0 0 0 12">
+                                        <RadioButton x:Name="TypeGK" GroupName="TermType" Content="ГК" IsChecked="True" Margin="0 0 16 8" Checked="OnTerminalTypeRadioChanged"/>
+                                        <RadioButton x:Name="TypeVedomy" GroupName="TermType" Content="Ведомый" Margin="0 0 16 8" Checked="OnTerminalTypeRadioChanged"/>
+                                        <RadioButton x:Name="TypeKitchen" GroupName="TermType" Content="Кухня" Margin="0 0 16 8" Checked="OnTerminalTypeRadioChanged"/>
+                                        <RadioButton x:Name="TypeKiosk" GroupName="TermType" Content="Киоск" Margin="0 0 16 8" Checked="OnTerminalTypeRadioChanged"/>
+                                        <RadioButton x:Name="TypeOffice" GroupName="TermType" Content="Офис" Margin="0 0 0 8" Checked="OnTerminalTypeRadioChanged"/>
+                                    </WrapPanel>
+
+                                    <!-- ID терминала и Превью в одну строку -->
+                                    <StackPanel Orientation="Horizontal" Margin="0 0 0 8">
+                                        <StackPanel Margin="0 0 16 0">
+                                            <TextBlock x:Name="IdHintLabel" Text="ID (10XX):" Margin="0 0 0 4" FontSize="12" Opacity="0.7"/>
+                                            <TextBox x:Name="TerminalIdBox" 
+                                                     Width="80"
+                                                     Height="32" 
+                                                     Padding="8 4" 
+                                                     FontSize="14" 
+                                                     MaxLength="2"
+                                                     Text="01"
+                                                     TextChanged="OnTerminalTextChanged"
+                                                     Background="{DynamicResource SurfaceBrush}"
+                                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                                     BorderBrush="{DynamicResource BorderBrushMuted}"
+                                                     CaretBrush="{DynamicResource TextPrimaryBrush}"/>
+                                        </StackPanel>
+                                        
+                                        <StackPanel VerticalAlignment="Bottom">
+                                            <TextBlock Text="Имя ПК:" Margin="0 0 0 4" FontSize="12" Opacity="0.7"/>
+                                            <Border Background="{DynamicResource SurfaceBrush}" 
+                                                    CornerRadius="4" 
+                                                    Padding="12 6" 
+                                                    Height="32">
+                                                <TextBlock x:Name="ComputerNamePreview" 
+                                                           Text="GK-1001" 
+                                                           FontSize="14" 
+                                                           FontWeight="SemiBold"
+                                                           VerticalAlignment="Center"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </StackPanel>
+
+
+                                    <!-- Установка Rhelper -->
+                                    <CheckBox x:Name="RhelperToggle"
+                                              Content="Установить Rhelper (удалённый доступ)"
+                                              IsChecked="True"
+                                              Style="{StaticResource ToggleCheckBox}" 
+                                              Margin="0 18 0 8"/>
+
+                                    <!-- Удаление старого пользователя -->
+                                    <CheckBox x:Name="DeleteOldUserToggle"
+                                              Content="Удалить старого пользователя"
+                                              IsChecked="False"
+                                              Style="{StaticResource ToggleCheckBox}" />
+
+                                </StackPanel>
+                            </StackPanel>
+                            </ScrollViewer>
+                        </TabItem>
+
+                        <TabItem Header="2. Опции настройки">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="20">
+                                <StackPanel x:Name="OptionsContainer">
+                            <StackPanel Margin="0 0 0 20">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Настройка Windows"
+                                               FontSize="22"
+                                               FontWeight="SemiBold" />
+                                    <Border Background="{DynamicResource SurfaceBrush}"
+                                            CornerRadius="4"
+                                            Margin="12 0 0 0"
+                                            Padding="8 4"
+                                            VerticalAlignment="Center">
+                                        <TextBlock Text="Опционально" 
+                                                   FontSize="12" 
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0 8 0 0">
+                                    <Button Content="Выбрать всё"
+                                            Padding="12 4"
+                                            FontSize="12"
+                                            Click="OnSelectAllWindowsOptions"
+                                            Background="{DynamicResource SurfaceBrush}"
+                                            Foreground="{DynamicResource TextPrimaryBrush}"
+                                            BorderBrush="{DynamicResource BorderBrushMuted}"
+                                            BorderThickness="1"/>
+                                    <Button Content="Убрать всё"
+                                            Margin="8 0 0 0"
+                                            Padding="12 4"
+                                            FontSize="12"
+                                            Click="OnDeselectAllWindowsOptions"
+                                            Background="{DynamicResource SurfaceBrush}"
+                                            Foreground="{DynamicResource TextPrimaryBrush}"
+                                            BorderBrush="{DynamicResource BorderBrushMuted}"
+                                            BorderThickness="1"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Group: System -->
+                            <TextBlock Text="СИСТЕМА И ПРОИЗВОДИТЕЛЬНОСТЬ" 
+                                       FontSize="12" 
+                                       FontWeight="Bold" 
+                                       Foreground="{DynamicResource TextSecondaryBrush}" 
+                                       Margin="0 0 0 12"
+                                       Opacity="0.8"/>
+                            
+                            <StackPanel Margin="0 0 0 24">
+                                <CheckBox x:Name="PowerPlanToggle"
+                                          Content="Включить максимальную производительность"
+                                          Margin="0 0 0 12"
+                                          IsChecked="True"
+                                          Style="{StaticResource ToggleCheckBox}" />
+                                <CheckBox x:Name="SleepToggle"
+                                          Content="Отключение спящего режима (Sleep / Hibernate)"
+                                          Margin="0 0 0 12"
+                                          IsChecked="True"
+                                          Style="{StaticResource ToggleCheckBox}" />
+                                <CheckBox x:Name="UsbPowerToggle"
+                                          Content="Отключение энергосбережения USB портов"
+                                          Margin="0 0 0 12"
+                                          IsChecked="True"
+                                          Style="{StaticResource ToggleCheckBox}" />
+                                <CheckBox x:Name="UacToggle"
+                                          Content="Отключение UAC (уведомления администратора)"
+                                          Margin="0 0 0 12"
+                                          IsChecked="True"
+                                          Style="{StaticResource ToggleCheckBox}" />
+                                <CheckBox x:Name="AccessibilityToggle"
+                                          Content="Отключение залипания клавиш и спец. возможностей"
+                                          Margin="0 0 0 12"
+                                          IsChecked="True"
+                                          Style="{StaticResource ToggleCheckBox}" />
+                                <CheckBox x:Name="LocaleToggle"
+                                          Content="Настройка региона (RU) и раскладки клавиатуры"
+                                          Margin="0 0 0 0"
+                                          IsChecked="True"
+                                          Style="{StaticResource ToggleCheckBox}" />
+                            </StackPanel>
+
+                            <!-- Group: Visuals -->
+                            <TextBlock Text="ИНТЕРФЕЙС И ПРОВОДНИК" 
+                                       FontSize="12" 
+                                       FontWeight="Bold" 
+                                       Foreground="{DynamicResource TextSecondaryBrush}" 
+                                       Margin="0 0 0 12"
+                                       Opacity="0.8"/>
+                            
+                            <StackPanel Margin="0 0 0 24">
+                                <CheckBox x:Name="ThemeToggle"
+                                          Content="Тёмная тема оформления (Apps &amp; System)"
+                                          Margin="0 0 0 12"
+                                          IsChecked="True"
+                                          Style="{StaticResource ToggleCheckBox}" />
+                                <CheckBox x:Name="ExplorerToggle"
+                                          Content="Настройка проводника (скрыть лишние папки)"
+                                          Margin="0 0 0 12"
+                                          IsChecked="True"
+                                          Style="{StaticResource ToggleCheckBox}" />
+                                <CheckBox x:Name="ContextMenuToggle"
+                                          Content="Классическое контекстное меню (Win 10 Style)"
+                                          Margin="0 0 0 12"
+                                          IsChecked="True"
+                                          Style="{StaticResource ToggleCheckBox}" />
+                                <CheckBox x:Name="LockToggle"
+                                          Content="Отключение экрана блокировки и заставки"
+                                          Margin="0 0 0 12"
+                                          IsChecked="True"
+                                          Style="{StaticResource ToggleCheckBox}" />
+                                <CheckBox x:Name="StartMenuToggle"
+                                          Content="Оптимизация меню Пуск (Start Menu)"
+                                          Margin="0 0 0 0"
+                                          IsChecked="True"
+                                          Style="{StaticResource ToggleCheckBox}" />
+                            </StackPanel>
+
+                            <!-- Group: Privacy -->
+                            <TextBlock Text="ПРИВАТНОСТЬ И БЕЗОПАСНОСТЬ" 
+                                       FontSize="12" 
+                                       FontWeight="Bold" 
+                                       Foreground="{DynamicResource TextSecondaryBrush}" 
+                                       Margin="0 0 0 12"
+                                       Opacity="0.8"/>
+                            
+                            <StackPanel Margin="0 0 0 24">
+                                <CheckBox x:Name="DefenderToggle"
+                                          Content="Отключить Windows Defender и Брандмауэр"
+                                          Margin="0 0 0 12"
+                                          IsChecked="True"
+                                          Style="{StaticResource ToggleCheckBox}" />
+                                <CheckBox x:Name="SslTlsToggle"
+                                          Content="Настроить SSL/TLS 1.2 (для старых систем)"
+                                          Margin="0 0 0 12"
+                                          IsChecked="True"
+                                          Style="{StaticResource ToggleCheckBox}" />
+                                <CheckBox x:Name="TelemetryToggle"
+                                          Content="Блокировка телеметрии и сбора данных"
+                                          Margin="0 0 0 12"
+                                          IsChecked="True"
+                                          Style="{StaticResource ToggleCheckBox}" />
+                                <CheckBox x:Name="BloatToggle"
+                                          Content="Удалить предустановленный мусор (Bloatware)"
+                                          Margin="0 0 0 12"
+                                          IsChecked="True"
+                                          Style="{StaticResource ToggleCheckBox}" />
+                                <CheckBox x:Name="CleanupToggle"
+                                          Content="Финальная очистка временных файлов"
+                                          Margin="0 0 0 0"
+                                          IsChecked="True"
+                                          Style="{StaticResource ToggleCheckBox}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                        </TabItem>
+
+                        <TabItem Header="3. Установка ПО">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="20">
+                                <StackPanel>
+                                    <StackPanel Margin="0 0 0 20">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="Установка программ"
+                                                       FontSize="22"
+                                                       FontWeight="SemiBold" />
+                                            <Border Background="{DynamicResource SurfaceBrush}"
+                                                    CornerRadius="4"
+                                                    Margin="12 0 0 0"
+                                                    Padding="8 4"
+                                                    VerticalAlignment="Center">
+                                                <TextBlock Text="Опционально" 
+                                                           FontSize="12" 
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0 8 0 0">
+                                            <Button Content="Выбрать всё"
+                                                    Padding="12 4"
+                                                    FontSize="12"
+                                                    Click="OnSelectAllSoftware"
+                                                    Background="{DynamicResource SurfaceBrush}"
+                                                    Foreground="{DynamicResource TextPrimaryBrush}"
+                                                    BorderBrush="{DynamicResource BorderBrushMuted}"
+                                                    BorderThickness="1"/>
+                                            <Button Content="Убрать всё"
+                                                    Margin="8 0 0 0"
+                                                    Padding="12 4"
+                                                    FontSize="12"
+                                                    Click="OnDeselectAllSoftware"
+                                                    Background="{DynamicResource SurfaceBrush}"
+                                                    Foreground="{DynamicResource TextPrimaryBrush}"
+                                                    BorderBrush="{DynamicResource BorderBrushMuted}"
+                                                    BorderThickness="1"/>
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <!-- Базовые программы -->
+                                    <TextBlock Text="БАЗОВЫЕ ПРОГРАММЫ" 
+                                               FontSize="12" 
+                                               FontWeight="Bold" 
+                                               Foreground="{DynamicResource TextSecondaryBrush}" 
+                                               Margin="0 0 0 12"
+                                               Opacity="0.8"/>
+                                    
+                                    <StackPanel Margin="0 0 0 24">
+                                        <CheckBox x:Name="Sw7ZipToggle"
+                                                  Content="7-Zip"
+                                                  Margin="0 0 0 12"
+                                                  IsChecked="True"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                        <CheckBox x:Name="SwNotepadToggle"
+                                                  Content="Notepad++"
+                                                  Margin="0 0 0 12"
+                                                  IsChecked="True"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                        <CheckBox x:Name="SwBraveToggle"
+                                                  Content="Google Chrome"
+                                                  Margin="0 0 0 12"
+                                                  IsChecked="True"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                        <CheckBox x:Name="SwVlcToggle"
+                                                  Content="VLC"
+                                                  Margin="0 0 0 12"
+                                                  IsChecked="True"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                        <CheckBox x:Name="SwDotNet48Toggle"
+                                                  Content=".NET 4.8"
+                                                  Margin="0 0 0 0"
+                                                  IsChecked="True"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                    </StackPanel>
+
+                                    <!-- Удалённый доступ -->
+                                    <TextBlock Text="УДАЛЁННЫЙ ДОСТУП" 
+                                               FontSize="12" 
+                                               FontWeight="Bold" 
+                                               Foreground="{DynamicResource TextSecondaryBrush}" 
+                                               Margin="0 0 0 12"
+                                               Opacity="0.8"/>
+                                    
+                                    <StackPanel Margin="0 0 0 24">
+                                        <CheckBox x:Name="SwRhelperToggle"
+                                                  Content="Rhelper"
+                                                  Margin="0 0 0 12"
+                                                  IsChecked="True"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                        <CheckBox x:Name="SwRustDeskToggle"
+                                                  Content="RustDesk"
+                                                  Margin="0 0 0 12"
+                                                  IsChecked="True"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                        <CheckBox x:Name="SwAnyDeskToggle"
+                                                  Content="AnyDesk"
+                                                  Margin="0 0 0 12"
+                                                  IsChecked="False"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                        <CheckBox x:Name="SwAssistantToggle"
+                                                  Content="Ассистент"
+                                                  Margin="0 0 0 0"
+                                                  IsChecked="False"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                    </StackPanel>
+
+                                    <!-- Драйверы ККТ -->
+                                    <TextBlock Text="ДРАЙВЕРЫ ККТ" 
+                                               FontSize="12" 
+                                               FontWeight="Bold" 
+                                               Foreground="{DynamicResource TextSecondaryBrush}" 
+                                               Margin="0 0 0 12"
+                                               Opacity="0.8"/>
+                                    
+                                    <StackPanel Margin="0 0 0 24">
+                                        <CheckBox x:Name="SwAtolDriverToggle"
+                                                  Content="Драйвер АТОЛ 10.10.7"
+                                                  Margin="0 0 0 12"
+                                                  IsChecked="False"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                        <CheckBox x:Name="SwShtrihDriverToggle"
+                                                  Content="Драйвер Штрих 5.21.1207"
+                                                  Margin="0 0 0 0"
+                                                  IsChecked="False"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                    </StackPanel>
+
+                                    <!-- Утилиты iiko -->
+                                    <TextBlock Text="УТИЛИТЫ IIKO" 
+                                               FontSize="12" 
+                                               FontWeight="Bold" 
+                                               Foreground="{DynamicResource TextSecondaryBrush}" 
+                                               Margin="0 0 0 12"
+                                               Opacity="0.8"/>
+                                    
+                                    <StackPanel Margin="0 0 0 24">
+                                        <CheckBox x:Name="SwOrderCheckToggle"
+                                                  Content="OrderCheck"
+                                                  Margin="0 0 0 12"
+                                                  IsChecked="False"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                        <CheckBox x:Name="SwClearBatToggle"
+                                                  Content="CLEAR.bat"
+                                                  Margin="0 0 0 12"
+                                                  IsChecked="False"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                        <CheckBox x:Name="SwFrontToolsToggle"
+                                                  Content="FrontTools"
+                                                  Margin="0 0 0 12"
+                                                  IsChecked="False"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                        <CheckBox x:Name="SwFrontToolsSqliteToggle"
+                                                  Content="FrontTools SQLite"
+                                                  Margin="0 0 0 0"
+                                                  IsChecked="False"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                    </StackPanel>
+
+                                    <!-- Диагностика -->
+                                    <TextBlock Text="ДИАГНОСТИКА И ИНСТРУМЕНТЫ" 
+                                               FontSize="12" 
+                                               FontWeight="Bold" 
+                                               Foreground="{DynamicResource TextSecondaryBrush}" 
+                                               Margin="0 0 0 12"
+                                               Opacity="0.8"/>
+                                    
+                                    <StackPanel Margin="0 0 0 24">
+                                        <CheckBox x:Name="SwZabbixToggle"
+                                                  Content="Zabbix Agent"
+                                                  Margin="0 0 0 12"
+                                                  IsChecked="True"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                        <CheckBox x:Name="SwComPortCheckerToggle"
+                                                  Content="ComPort Checker"
+                                                  Margin="0 0 0 12"
+                                                  IsChecked="False"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                        <CheckBox x:Name="SwDatabaseNetToggle"
+                                                  Content="Database.NET"
+                                                  Margin="0 0 0 12"
+                                                  IsChecked="False"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                        <CheckBox x:Name="SwAdvancedIpScannerToggle"
+                                                  Content="Advanced IP Scanner"
+                                                  Margin="0 0 0 12"
+                                                  IsChecked="False"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                        <CheckBox x:Name="SwPrinterTestToggle"
+                                                  Content="Printer Test V3.1C"
+                                                  Margin="0 0 0 0"
+                                                  IsChecked="False"
+                                                  Style="{StaticResource ToggleCheckBox}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </TabItem>
+
+                        <TabItem Header="4. Работа с IIKO">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="20">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0 0 0 20">
+                                        <TextBlock Text="Настройка IIKO"
+                                                   FontSize="22"
+                                                   FontWeight="SemiBold" />
+                                        <Border Background="{DynamicResource SurfaceBrush}"
+                                                CornerRadius="4"
+                                                Padding="8 2"
+                                                Margin="12 0 0 0"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="Опционально"
+                                                       FontSize="11"
+                                                       Opacity="0.7" />
+                                        </Border>
+                                    </StackPanel>
+
+                                    <TextBlock Text="Адрес сервера IIKO" 
+                                               FontWeight="Medium" 
+                                               Margin="0 0 0 8"/>
+                                    <TextBox x:Name="IikoServerBox" 
+                                             Height="40" 
+                                             Padding="12 8" 
+                                             FontSize="14"
+                                             Background="{DynamicResource SurfaceBrush}"
+                                             Foreground="{DynamicResource TextPrimaryBrush}"
+                                             BorderBrush="{DynamicResource BorderBrushMuted}"
+                                             BorderThickness="1"
+                                             CaretBrush="{DynamicResource TextPrimaryBrush}"/>
+                                    <TextBlock Text="Пример: https://august.iiko.it/resto" 
+                                               Opacity="0.5" 
+                                               FontSize="12" 
+                                               Margin="0 4 0 20"/>
+
+                                    <TextBlock Text="Компоненты для установки" 
+                                               FontWeight="Medium" 
+                                               Margin="0 0 0 12"/>
+
+                                    <CheckBox x:Name="IikoFrontToggle"
+                                              Content="iikoFront"
+                                              Margin="0 0 0 8"
+                                              IsChecked="True"
+                                              Style="{StaticResource ToggleCheckBox}" />
+                                    <CheckBox x:Name="IikoOfficeToggle"
+                                              Content="iikoOffice"
+                                              Margin="0 0 0 8"
+                                              IsChecked="False"
+                                              Style="{StaticResource ToggleCheckBox}" />
+                                    <CheckBox x:Name="IikoChainToggle"
+                                              Content="iikoChain"
+                                              Margin="0 0 0 8"
+                                              IsChecked="False"
+                                              Style="{StaticResource ToggleCheckBox}" />
+                                    <CheckBox x:Name="IikoCardToggle"
+                                              Content="iikoCard"
+                                              Margin="0 0 0 8"
+                                              IsChecked="True"
+                                              Style="{StaticResource ToggleCheckBox}" />
+                                    <CheckBox x:Name="IikoFrontAutostartToggle"
+                                              Content="Добавить iikoFront в автозагрузку"
+                                              Margin="0 16 0 8"
+                                              IsChecked="True"
+                                              Style="{StaticResource ToggleCheckBox}" />
+
+                                    <TextBlock Text="Настройки конфигурации (после установки)" 
+                                               FontWeight="Medium" 
+                                               Margin="0 12 0 8"
+                                               Opacity="0.9"/>
+                                               
+                                    <CheckBox x:Name="IikoConfigServerToggle"
+                                              Content="Прописать адрес сервера в конфиг"
+                                              Margin="0 0 0 8"
+                                              IsChecked="True"
+                                              Style="{StaticResource ToggleCheckBox}" />
+
+                                    <CheckBox x:Name="IikoHandCardRollToggle"
+                                              Content="Разрешить прокатку карт (AllowHandCardRoll)"
+                                              Margin="0 0 0 8"
+                                              IsChecked="True"
+                                              Style="{StaticResource ToggleCheckBox}" />
+
+                                    <CheckBox x:Name="IikoMinimizeButtonToggle"
+                                              Content="Кнопка сворачивания (ShowMinimizeButton)"
+                                              Margin="0 0 0 8"
+                                              IsChecked="True"
+                                              Style="{StaticResource ToggleCheckBox}" />
+
+                                    <StackPanel Orientation="Vertical" Margin="0 12 0 8">
+                                        <TextBlock Text="Плагины (авто-установка)" 
+                                                   FontWeight="Medium" 
+                                                   Margin="0 0 0 8"
+                                                   Opacity="0.9"/>
+                                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                            <Button Content="Добавить" 
+                                                    Click="OnAddPluginClicked"
+                                                    Style="{StaticResource StandardButton}"
+                                                    Padding="15,5"
+                                                    Width="Auto"
+                                                    MinWidth="100"
+                                                    Margin="0,0,10,0"/>
+                                            <TextBlock x:Name="SelectedPluginsCountText" 
+                                                       Text="Выбрано: 0" 
+                                                       VerticalAlignment="Center" 
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                        </WrapPanel>
+                                        
+                                        <!-- Selected Plugins List -->
+                                        <ItemsControl x:Name="SelectedPluginsList" Margin="0,5,0,0">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Margin="0,0,0,4" 
+                                                            Padding="8,4" 
+                                                            Background="{DynamicResource SurfaceBrush}" 
+                                                            CornerRadius="4" 
+                                                            BorderBrush="{DynamicResource BorderBrushMuted}" 
+                                                            BorderThickness="1">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Text="{Binding DisplayName}" 
+                                                                       Foreground="{DynamicResource TextPrimaryBrush}" 
+                                                                       VerticalAlignment="Center"
+                                                                       TextTrimming="CharacterEllipsis"/>
+                                                            
+                                                            <Button Grid.Column="1" 
+                                                                    Click="OnRemovePluginClicked" 
+                                                                    Style="{StaticResource WindowIconButton}" 
+                                                                    Height="20" Width="20" Padding="2"
+                                                                    Margin="8,0,0,0" 
+                                                                    ToolTip="Удалить">
+                                                                <Button.Tag>
+                                                                    <Binding Path="."/>
+                                                                </Button.Tag>
+                                                                <Viewbox Stretch="Uniform">
+                                                                    <Path Data="M0,0 L10,10 M10,0 L0,10" 
+                                                                          Stroke="{DynamicResource TextSecondaryBrush}" 
+                                                                          StrokeThickness="2" />
+                                                                </Viewbox>
+                                                            </Button>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+
+                                    <!-- CRM/Касса -->
+                                    <TextBlock Text="Надпись CRM/Касса" 
+                                               FontWeight="Medium" 
+                                               Margin="0 20 0 8"/>
+                                    <CheckBox x:Name="OverlayEnabledToggle"
+                                              Content="Показывать сверху CRM и номер кассы"
+                                              Margin="0 0 0 12"
+                                              IsChecked="True"
+                                              Checked="OnOverlayEnabledToggleChanged"
+                                              Unchecked="OnOverlayEnabledToggleChanged"
+                                              Style="{StaticResource ToggleCheckBox}" />
+                                    <StackPanel x:Name="OverlayFieldsPanel" Margin="0 0 0 0">
+                                        <Grid Margin="0 0 0 12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="16" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="CRM" FontWeight="SemiBold" Margin="0 0 0 4"/>
+                                                <TextBox x:Name="OverlayCrmBox"
+                                                         Height="36"
+                                                         Padding="10 6"
+                                                         FontSize="14"
+                                                         Background="{DynamicResource SurfaceBrush}"
+                                                         Foreground="{DynamicResource TextPrimaryBrush}"
+                                                         BorderBrush="{DynamicResource BorderBrushMuted}"
+                                                         BorderThickness="1"
+                                                         CaretBrush="{DynamicResource TextPrimaryBrush}"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Номер кассы" FontWeight="SemiBold" Margin="0 0 0 4"/>
+                                                <TextBox x:Name="OverlayCashBox"
+                                                         Height="36"
+                                                         Padding="10 6"
+                                                         FontSize="14"
+                                                         Background="{DynamicResource SurfaceBrush}"
+                                                         Foreground="{DynamicResource TextPrimaryBrush}"
+                                                         BorderBrush="{DynamicResource BorderBrushMuted}"
+                                                         BorderThickness="1"
+                                                         CaretBrush="{DynamicResource TextPrimaryBrush}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="Экран для надписи:" 
+                                                       FontWeight="SemiBold" 
+                                                       VerticalAlignment="Center"
+                                                       Margin="0 0 12 0"/>
+                                            <TextBlock x:Name="OverlayDisplayLabel"
+                                                       Text="Основной"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       Margin="0 0 12 0"/>
+                                            <Button Content="Выбрать экран"
+                                                    Padding="12 4"
+                                                    FontSize="12"
+                                                    Click="OnOverlayDisplayPickClicked"
+                                                    Background="{DynamicResource SurfaceBrush}"
+                                                    Foreground="{DynamicResource TextPrimaryBrush}"
+                                                    BorderBrush="{DynamicResource BorderBrushMuted}"
+                                                    BorderThickness="1"/>
+                                        </StackPanel>
+                                    </StackPanel>
+
+
+                                </StackPanel>
+                            </ScrollViewer>
+                        </TabItem>
+                    </TabControl>
+
+                    <!-- Footer Action -->
+                    <Border Grid.Row="1" 
+                            BorderBrush="{DynamicResource BorderBrushMuted}" 
+                            BorderThickness="0 1 0 0" 
+                            Padding="20"
+                            Background="{DynamicResource SurfaceBrush}"
+                            CornerRadius="0 0 10 10">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                             <Button x:Name="CancelButton"
+                                    Content="Отмена"
+                                    MinWidth="120"
+                                    Height="48"
+                                    Padding="24 0"
+                                    FontSize="16"
+                                    Margin="0 0 12 0"
+                                    Visibility="Collapsed"
+                                    Background="{DynamicResource SurfaceBrush}"
+                                    Foreground="{DynamicResource TextPrimaryBrush}"
+                                    BorderBrush="{DynamicResource BorderBrushMuted}"
+                                    BorderThickness="1"
+                                    Click="OnCancelClicked" />
+                             <Button x:Name="ApplyButton"
+                                    Content="Старт пусконаладки"
+                                    MinWidth="220"
+                                    Height="48"
+                                    Padding="24 0"
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Click="OnApplyClicked" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+        
+        <!-- Completion Overlay -->
+        <Grid x:Name="CompletionOverlay" 
+              Visibility="Collapsed"
+              Grid.RowSpan="2"
+              Background="{DynamicResource OverlayBackgroundBrush}"
+              d:Visibility="Visible">
+            <Border Background="{DynamicResource CardBrush}"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    CornerRadius="16"
+                    MinWidth="400"
+                    MaxWidth="500"
+                    Padding="32"
+                    BorderThickness="1"
+                    BorderBrush="{DynamicResource BorderBrushMuted}">
+                <StackPanel>
+                    <!-- Success Icon -->
+                    <Viewbox Width="64" Height="64" Margin="0 0 0 24" HorizontalAlignment="Center">
+                        <Path Fill="{DynamicResource AccentBrush}"
+                              Data="M12,2A10,10,0,1,0,22,12,10,10,0,0,0,12,2M10,17L5,12L6.41,10.59L10,14.17L17.59,6.58L19,8L10,17Z" />
+                    </Viewbox>
+                    
+                    <TextBlock Text="Пусконаладка окончена"
+                               FontSize="24"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               Margin="0 0 0 12"/>
+                               
+                    <TextBlock Text="Для применения всех изменений необходимо перезагрузить ПК. Сделать это сейчас?"
+                               FontSize="16"
+                               Opacity="0.8"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               Margin="0 0 0 32"/>
+                               
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Content="Нет"
+                                Click="OnRebootNoClicked"
+                                MinWidth="120"
+                                Height="48"
+                                Margin="0 0 16 0"
+                                FontSize="16"
+                                Background="Transparent"
+                                BorderBrush="{DynamicResource BorderBrushMuted}"
+                                BorderThickness="1"
+                                Foreground="{DynamicResource TextPrimaryBrush}"
+                                Style="{StaticResource StandardButton}"/>
+                                
+                        <Button Content="Да, перезагрузить"
+                                Click="OnRebootYesClicked"
+                                MinWidth="180"
+                                Height="48"
+                                FontSize="16"
+                                FontWeight="SemiBold"
+                                Style="{StaticResource PrimaryButton}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Cancellation Overlay -->
+        <Grid x:Name="CancellationOverlay" 
+              Visibility="Collapsed"
+              Grid.RowSpan="2"
+              Background="{DynamicResource OverlayBackgroundBrush}"
+              d:Visibility="Visible">
+            <Border Background="{DynamicResource CardBrush}"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    CornerRadius="16"
+                    MinWidth="400"
+                    MaxWidth="500"
+                    Padding="32"
+                    BorderThickness="1"
+                    BorderBrush="{DynamicResource BorderBrushMuted}">
+                <StackPanel>
+                    <!-- Stop Icon -->
+                    <Viewbox Width="64" Height="64" Margin="0 0 0 24" HorizontalAlignment="Center">
+                        <Path Fill="{DynamicResource ErrorBrush}"
+                              Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M9,9H15V15H9" />
+                    </Viewbox>
+                    
+                    <TextBlock Text="Пусконаладка остановлена вручную"
+                               FontSize="24"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               Margin="0 0 0 12"/>
+                               
+                    <TextBlock Text="Процесс был прерван пользователем. Некоторые изменения могли быть не применены."
+                               FontSize="16"
+                               Opacity="0.8"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               Margin="0 0 0 32"/>
+                               
+                    <Button Content="Закрыть"
+                            Click="OnRebootNoClicked"
+                            MinWidth="120"
+                            Height="40"
+                            Padding="20 0"
+                            FontSize="15"
+                            Background="{DynamicResource SurfaceBrush}"
+                            Foreground="{DynamicResource TextPrimaryBrush}"
+                            BorderBrush="{DynamicResource BorderBrushMuted}"
+                            BorderThickness="1"
+                            HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

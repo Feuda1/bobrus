@@ -37,8 +37,6 @@ Get-PnpDevice -Class 'HIDClass' -ErrorAction SilentlyContinue | Where-Object {
     {
         var cmd = enable ? "Enable-PnpDevice" : "Disable-PnpDevice";
         Logger.Information("SetTouchEnabledAsync: {Cmd}", cmd);
-
-        // Один скрипт для всех устройств сразу
         var script = $@"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $devices = Get-PnpDevice -Class 'HIDClass' -ErrorAction SilentlyContinue | Where-Object {{
@@ -60,8 +58,6 @@ if ($devices) {{
     public async Task<bool> RestartTouchAsync()
     {
         Logger.Information("RestartTouchAsync: starting");
-
-        // Всё в одном скрипте: отключить, подождать, включить
         var script = @"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $devices = Get-PnpDevice -Class 'HIDClass' -ErrorAction SilentlyContinue | Where-Object {

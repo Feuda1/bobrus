@@ -11,10 +11,46 @@ internal sealed class SecurityService
 {
     public async Task<SecurityActionResult> DisableDefenderAsync()
     {
-        var command = string.Join("; ",
-            "Set-MpPreference -DisableRealtimeMonitoring $true -DisableBehaviorMonitoring $true -DisableIOAVProtection $true -DisableScriptScanning $true -SubmitSamplesConsent NeverSend -MAPSReporting 0",
-            "Try { sc.exe stop WinDefend | Out-Null } Catch {}",
-            "Try { sc.exe config WinDefend start= disabled | Out-Null } Catch {}");
+        var command = @"
+            $ErrorActionPreference='SilentlyContinue'
+
+            # ===== ГРУБОЕ ОТКЛЮЧЕНИЕ DEFENDER И БРАНДМАУЭРА =====
+
+            # Реестр - Defender
+            reg add 'HKLM\SOFTWARE\Policies\Microsoft\Windows Defender' /v DisableAntiSpyware /t REG_DWORD /d 1 /f *>$null
+            reg add 'HKLM\SOFTWARE\Policies\Microsoft\Windows Defender' /v DisableAntiVirus /t REG_DWORD /d 1 /f *>$null
+            reg add 'HKLM\SOFTWARE\Microsoft\Windows Defender' /v DisableAntiSpyware /t REG_DWORD /d 1 /f *>$null
+            reg add 'HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection' /v DisableRealtimeMonitoring /t REG_DWORD /d 1 /f *>$null
+            reg add 'HKLM\SOFTWARE\Microsoft\Windows Defender\Real-Time Protection' /v DisableRealtimeMonitoring /t REG_DWORD /d 1 /f *>$null
+
+            # SmartScreen
+            reg add 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System' /v EnableSmartScreen /t REG_DWORD /d 0 /f *>$null
+            reg add 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer' /v SmartScreenEnabled /t REG_SZ /d 'Off' /f *>$null
+
+            # Скрыть Security Center
+            reg add 'HKLM\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications' /v DisableNotifications /t REG_DWORD /d 1 /f *>$null
+            reg add 'HKLM\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Systray' /v HideSystray /t REG_DWORD /d 1 /f *>$null
+            reg delete 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' /v SecurityHealth /f *>$null
+
+            # Службы Defender - отключить через реестр
+            reg add 'HKLM\SYSTEM\CurrentControlSet\Services\WinDefend' /v Start /t REG_DWORD /d 4 /f *>$null
+            reg add 'HKLM\SYSTEM\CurrentControlSet\Services\WdNisSvc' /v Start /t REG_DWORD /d 4 /f *>$null
+            reg add 'HKLM\SYSTEM\CurrentControlSet\Services\SecurityHealthService' /v Start /t REG_DWORD /d 4 /f *>$null
+            
+            # PowerShell команды (Set-MpPreference) для надежности
+            Try { Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue } Catch {}
+            Try { Set-MpPreference -DisableBehaviorMonitoring $true -ErrorAction SilentlyContinue } Catch {}
+            Try { Set-MpPreference -DisableBlockAtFirstSeen $true -ErrorAction SilentlyContinue } Catch {}
+            Try { Set-MpPreference -DisableIOAVProtection $true -ErrorAction SilentlyContinue } Catch {}
+            Try { Set-MpPreference -DisablePrivacyMode $true -ErrorAction SilentlyContinue } Catch {}
+            Try { Set-MpPreference -SignatureDisableUpdateOnStartupWithoutEngine $true -ErrorAction SilentlyContinue } Catch {}
+            Try { Set-MpPreference -DisableArchiveScanning $true -ErrorAction SilentlyContinue } Catch {}
+            Try { Set-MpPreference -DisableIntrusionPreventionSystem $true -ErrorAction SilentlyContinue } Catch {}
+            Try { Set-MpPreference -DisableScriptScanning $true -ErrorAction SilentlyContinue } Catch {}
+            
+            Try { sc.exe stop WinDefend | Out-Null } Catch {}
+            Try { sc.exe config WinDefend start= disabled | Out-Null } Catch {}
+";
 
         var (ok, output) = await RunPowerShellAsync(command, requireElevation: true);
         return new SecurityActionResult(ok, output);

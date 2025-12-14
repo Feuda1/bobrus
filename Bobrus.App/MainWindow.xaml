@@ -79,6 +79,13 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center" Margin="0 0 12 0">
+                    <Button x:Name="SetupWizardButton"
+                            Width="140"
+                            Style="{StaticResource BaseButton}"
+                            Margin="0 0 10 0"
+                            Click="OnOpenSetupWizardClicked">
+                        Пусконаладка
+                    </Button>
                     <Button x:Name="SettingsButton"
                             Width="130"
                             Style="{StaticResource BaseButton}"
@@ -188,6 +195,7 @@
                                       Tag="System"
                                       Style="{StaticResource SectionToggleButton}"
                                       Click="OnSectionNavClicked" />
+
                         <ToggleButton x:Name="NetworkNavToggle"
                                       Content="Сеть"
                                       Tag="Network"
@@ -286,6 +294,8 @@
                                 </WrapPanel>
                             </Grid>
                         </Border>
+
+
 
                         <!-- Network -->
                         <Border x:Name="NetworkCard" Style="{StaticResource CardBorder}" Padding="18" Margin="0 0 0 14">
@@ -455,6 +465,13 @@
                                             Margin="0 12 12 12"
                                             Click="OnFrontToolsClicked"
                                             Tag="fronttools iikotools sqlite front tools утилиты фронт база данных maintenance" />
+                                    <Button x:Name="ZabbixButton"
+                                            Content="Zabbix Agent"
+                                            Style="{StaticResource FunctionButton}"
+                                            MinWidth="180"
+                                            Margin="0 12 12 12"
+                                            Click="OnZabbixClicked"
+                                            Tag="zabbix agent мониторинг monitoring агент заббикс сервер" />
                                 </WrapPanel>
                             </Grid>
                         </Border>

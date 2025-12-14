@@ -32,11 +32,12 @@ public partial class MainWindow
     private const string DatabaseNetUrl = "https://fishcodelib.com/files/DatabaseNet4.zip";
     private const string NotepadUrl = "https://github.com/Feuda1/Programs-for-Bobrik/releases/download/v1.0.0/npp.8.8.2.Installer.x64.exe";
     private const string PrinterTestUrl = "https://725920.selcdn.ru/upload_portkkm/iblock/929/9291b0d0c76c7c5756b81732df929086/Printer-TEST-V3.1C.zip";
-    private const string RhelperUrl = "https://github.com/Feuda1/Programs-for-Bobrik/releases/download/v1.0.0/remote-access-setup.exe";
+    private const string RhelperUrl = "https://repo.denvic.ru/remote-access/remote-access-setup.exe";
     private const string OrderCheckUrl = "https://clearbat.iiko.online/downloads/OrderCheck.exe";
     private const string ClearBatUrl = "https://clearbat.iiko.online/downloads/CLEAR.bat.exe";
     private const string FrontToolsUrl = "https://fronttools.iiko.it/FrontTools.exe";
     private const string FrontToolsSqliteUrl = "https://fronttools.iiko.it/fronttools_sqlite.zip";
+    private const string ZabbixUrl = "https://github.com/Feuda1/Programs-for-Bobrik/releases/download/v1.0.0/INSTALLZabbix.exe";
 
     private void OnSevenZipClicked(object sender, RoutedEventArgs e)
     {
@@ -64,14 +65,55 @@ public partial class MainWindow
     private async void OnPrinterTestClicked(object sender, RoutedEventArgs e) =>
         await DownloadProgramAsync("Printer Test V3.1C", PrinterTestUrl, PrinterTestButton, handling: ProgramHandling.ExtractAndRevealFolder);
 
-    private async void OnRhelperClicked(object sender, RoutedEventArgs e) =>
+    private async void OnRhelperClicked(object sender, RoutedEventArgs e)
+    {
+        string? downloadedPath = null;
+
         await DownloadProgramAsync(
             "Rhelper",
             RhelperUrl,
             RhelperButton,
-            suggestedFileName: null,
+            suggestedFileName: "remote-access-setup.exe",
             customFolderName: "Rhelper",
-            afterDownload: CreateRhelperPasswordFile);
+            afterDownload: (path) => downloadedPath = path,
+            handling: ProgramHandling.RevealOnly);
+
+        if (string.IsNullOrEmpty(downloadedPath) || !File.Exists(downloadedPath)) return;
+
+        InstallRhelperWithArgs(downloadedPath);
+    }
+
+    private void InstallRhelperWithArgs(string installerPath)
+    {
+        try
+        {
+            _logger.Information("Запуск установки Rhelper с паролем...");
+            ShowNotification("Rhelper: запуск установки...", NotificationType.Info);
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = installerPath,
+                Arguments = "/PASSWORD=\"remote-access-setup\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-",
+                UseShellExecute = true
+            };
+
+            var process = Process.Start(psi);
+            if (process != null)
+            {
+                 _logger.Information("Rhelper: процесс установки запущен PID {Pid}", process.Id);
+                 ShowNotification("Rhelper: установка запущена в фоне", NotificationType.Success);
+            }
+            else
+            {
+                 ShowNotification("Rhelper: не удалось создать процесс", NotificationType.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Ошибка запуска установки Rhelper");
+            ShowNotification($"Ошибка запуска Rhelper: {ex.Message}", NotificationType.Error);
+        }
+    }
 
     private async void OnOrderCheckClicked(object sender, RoutedEventArgs e) =>
         await DownloadProgramAsync("OrderCheck", OrderCheckUrl, OrderCheckButton, handling: ProgramHandling.RevealOnly);
@@ -85,6 +127,9 @@ public partial class MainWindow
             new ProgramOption("FrontTools (iikoTools)", () => DownloadProgramAsync("FrontTools (iikoTools)", FrontToolsUrl, FrontToolsButton, handling: ProgramHandling.RevealOnly)),
             new ProgramOption("FrontTools SQLite", () => DownloadProgramAsync("FrontTools SQLite", FrontToolsSqliteUrl, FrontToolsButton, handling: ProgramHandling.ExtractAndRevealFolder)));
     }
+
+    private void OnZabbixClicked(object sender, RoutedEventArgs e) =>
+        _ = DownloadProgramAsync("Zabbix Agent", ZabbixUrl, ZabbixButton, handling: ProgramHandling.RunInstallerThenReveal);
 
     private void ShowProgramOptions(Button button, params ProgramOption[] options)
     {

@@ -194,6 +194,16 @@
                 </Style.Triggers>
             </Style>
 
+            <Style TargetType="Button" x:Key="StandardButton" BasedOn="{StaticResource BaseButton}">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                         <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
             <Style TargetType="Button" x:Key="WindowIconButton" BasedOn="{StaticResource BaseButton}">
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="BorderBrush" Value="Transparent" />

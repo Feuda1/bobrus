@@ -72,13 +72,13 @@ public partial class App : Application
     {
         var logPath = Path.Combine(AppPaths.LogsDirectory, "bobrus-.log");
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Information()
+            .MinimumLevel.Verbose()
             .WriteTo.File(logPath,
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 30,
                 rollOnFileSizeLimit: true,
                 shared: true)
-            .WriteTo.Sink(new UiLogSink())
+            .WriteTo.Sink(new UiLogSink(), restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information)
             .CreateLogger();
 
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>

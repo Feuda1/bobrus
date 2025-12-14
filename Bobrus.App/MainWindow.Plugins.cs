@@ -14,11 +14,11 @@ namespace Bobrus.App;
 
 public partial class MainWindow
 {
-    private const string PluginsBaseUrl = "https://rapid.iiko.ru/plugins/";
     private const string PluginsInstallPath = @"C:\Program Files\iiko\iikoRMS\Front.Net\Plugins";
-    private readonly List<PluginInfo> _plugins = new();
-    private readonly List<PluginInfo> _filteredPlugins = new();
-    private readonly List<PluginVersion> _versions = new();
+    private readonly Services.PluginRepository _pluginRepo = new(new HttpClient { Timeout = TimeSpan.FromSeconds(30) });
+    private readonly List<Services.PluginInfo> _plugins = new();
+    private readonly List<Services.PluginInfo> _filteredPlugins = new();
+    private readonly List<Services.PluginVersion> _versions = new();
 
     private async Task LoadPluginsAsync(bool showMessage = false)
     {
@@ -28,9 +28,8 @@ public partial class MainWindow
             PluginsList.ItemsSource = null;
             _plugins.Clear();
 
-            var html = await _httpClient.GetStringAsync(PluginsBaseUrl);
-            var items = ParsePluginList(html);
-            _plugins.AddRange(items.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase));
+            var items = await _pluginRepo.GetPluginsAsync();
+            _plugins.AddRange(items);
 
             ApplyPluginSearch();
             PluginStatusText.Text = $"Найдено: {_plugins.Count}";
@@ -47,7 +46,7 @@ public partial class MainWindow
         }
     }
 
-    private async Task LoadPluginVersionsAsync(PluginInfo plugin)
+    private async Task LoadPluginVersionsAsync(Services.PluginInfo plugin)
     {
         try
         {
@@ -56,9 +55,8 @@ public partial class MainWindow
             _versions.Clear();
             InstallPluginButton.IsEnabled = false;
 
-            var html = await _httpClient.GetStringAsync(plugin.Url);
-            var versions = ParseVersions(plugin.Url, html);
-            _versions.AddRange(versions.OrderByDescending(v => v.Name, StringComparer.OrdinalIgnoreCase));
+            var versions = await _pluginRepo.GetVersionsAsync(plugin.Url);
+            _versions.AddRange(versions);
 
             PluginVersionsList.ItemsSource = _versions;
             PluginStatusText.Text = $"Версий: {_versions.Count}";
@@ -81,7 +79,7 @@ public partial class MainWindow
         InstallPluginButton.IsEnabled = false;
         PluginVersionsList.ItemsSource = null;
 
-        if (PluginsList.SelectedItem is not PluginInfo plugin)
+        if (PluginsList.SelectedItem is not Services.PluginInfo plugin)
         {
             return;
         }
@@ -96,13 +94,13 @@ public partial class MainWindow
 
     private void OnPluginVersionSelected(object sender, RoutedEventArgs e)
     {
-        InstallPluginButton.IsEnabled = PluginVersionsList.SelectedItem is PluginVersion;
+        InstallPluginButton.IsEnabled = PluginVersionsList.SelectedItem is Services.PluginVersion;
     }
 
     private async void OnInstallPluginClicked(object sender, RoutedEventArgs e)
     {
-        if (PluginsList.SelectedItem is not PluginInfo plugin ||
-            PluginVersionsList.SelectedItem is not PluginVersion version)
+        if (PluginsList.SelectedItem is not Services.PluginInfo plugin ||
+            PluginVersionsList.SelectedItem is not Services.PluginVersion version)
         {
             return;
         }
@@ -155,55 +153,6 @@ public partial class MainWindow
         }
     }
 
-    private static IEnumerable<PluginInfo> ParsePluginList(string html)
-    {
-        var regex = new Regex("href=\"(?<href>[^\"?#]+/)\"", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        var results = new List<PluginInfo>();
-
-        foreach (Match match in regex.Matches(html))
-        {
-            var href = match.Groups["href"].Value;
-            if (string.IsNullOrWhiteSpace(href) || href.StartsWith("../"))
-            {
-                continue;
-            }
-
-            var rawName = href.TrimEnd('/').Trim();
-            if (rawName.Length == 0)
-            {
-                continue;
-            }
-
-            var decodedName = WebUtility.UrlDecode(rawName);
-            var url = new Uri(new Uri(PluginsBaseUrl), href).ToString();
-            results.Add(new PluginInfo(decodedName, url));
-        }
-
-        return results;
-    }
-
-    private static IEnumerable<PluginVersion> ParseVersions(string baseUrl, string html)
-    {
-        var regex = new Regex("href=\"(?<href>[^\"?#]+\\.zip)\"", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        var list = new List<PluginVersion>();
-
-        foreach (Match match in regex.Matches(html))
-        {
-            var href = match.Groups["href"].Value;
-            if (string.IsNullOrWhiteSpace(href))
-            {
-                continue;
-            }
-
-            var rawName = Path.GetFileName(href);
-            var name = WebUtility.UrlDecode(rawName);
-            var url = new Uri(new Uri(baseUrl), href).ToString();
-            list.Add(new PluginVersion(name, url));
-        }
-
-        return list;
-    }
-
     private void ApplyPluginSearch()
     {
         _filteredPlugins.Clear();
@@ -246,15 +195,5 @@ public partial class MainWindow
         {
             _logger.Warning(ex, "Не удалось удалить Zone.Identifier в {Folder}", folder);
         }
-    }
-
-    private sealed record PluginInfo(string Name, string Url)
-    {
-        public string DisplayName => Name;
-    }
-
-    private sealed record PluginVersion(string Name, string Url)
-    {
-        public string DisplayName => Name;
     }
 }
